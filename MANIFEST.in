@@ -1,0 +1,8 @@
+include *.rst
+include LICENSE
+include django_setup_configuration/py.typed
+recursive-include django_setup_configuration *.html
+recursive-include django_setup_configuration *.txt
+recursive-include django_setup_configuration *.po
+global-exclude __pycache__
+global-exclude *.py[co]
