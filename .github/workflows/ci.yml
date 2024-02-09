@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: $
+          python-version: ${{ matrix.python }}
 
       - name: Install dependencies
         run: pip install tox tox-gh-actions
@@ -32,8 +32,8 @@ jobs:
       - name: Run tests
         run: tox
         env:
-          PYTHON_VERSION: $
-          DJANGO: $
+          PYTHON_VERSION: ${{ matrix.python }}
+          DJANGO: ${{ matrix.django }}
 
       - name: Publish coverage report
         uses: codecov/codecov-action@v3
@@ -61,4 +61,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: $
+          password: ${{ secrets.PYPI_TOKEN }}
