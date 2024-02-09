@@ -3,7 +3,7 @@
    contain the root `toctree` directive.
 
 Welcome to django_setup_configuration's documentation!
-=================================================
+======================================================
 
 |build-status| |code-quality| |black| |coverage| |docs|
 
