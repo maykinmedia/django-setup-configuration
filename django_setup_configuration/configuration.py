@@ -13,7 +13,7 @@ class BaseConfigurationStep(ABC):
     required_settings: list[str] = []
     enable_setting: str = ""
 
-    def __str__(self):
+    def __repr__(self):
         return self.verbose_name
 
     def validate_requirements(self) -> None:

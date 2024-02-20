@@ -42,7 +42,7 @@ class Command(BaseCommand):
         # todo transaction atomic
         errors = ErrorDict()
         steps: list[BaseConfigurationStep] = [
-            import_string(path) for path in settings.SETUP_CONFIGURATION_STEPS
+            import_string(path)() for path in settings.SETUP_CONFIGURATION_STEPS
         ]
         enabled_steps = [step for step in steps if step.is_enabled()]
 
