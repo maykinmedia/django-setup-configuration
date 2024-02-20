@@ -5,17 +5,19 @@
 Welcome to django_setup_configuration's documentation!
 ======================================================
 
-|build-status| |code-quality| |black| |coverage| |docs|
+|build-status| |code-quality| |black| |coverage|
 
-|python-versions| |django-versions| |pypi-version|
+..
+   |docs| |python-versions| |django-versions| |pypi-version|
 
-<One liner describing the project>
+Django Setup Configuration allows to make a pluggable configuration setup
+used with the django management command.
 
 Features
 ========
 
-* ...
-* ...
+* management command, which runs the ordered list of all configuration steps
+* docker-compose example to use the command as an init container
 
 .. toctree::
    :maxdepth: 2
@@ -33,28 +35,29 @@ Indices and tables
 * :ref:`search`
 
 
-.. |build-status| image:: https://github.com/maykinmedia/django_setup_configuration/workflows/Run%20CI/badge.svg
+.. |build-status| image:: https://github.com/maykinmedia/django-setup-configuration/workflows/Run%20CI/badge.svg
     :alt: Build status
-    :target: https://github.com/maykinmedia/django_setup_configuration/actions?query=workflow%3A%22Run+CI%22
+    :target: https://github.com/maykinmedia/django-setup-configuration/actions?query=workflow%3A%22Run+CI%22
 
-.. |code-quality| image:: https://github.com/maykinmedia/django_setup_configuration/workflows/Code%20quality%20checks/badge.svg
+.. |code-quality| image:: https://github.com/maykinmedia/django-setup-configuration/workflows/Code%20quality%20checks/badge.svg
      :alt: Code quality checks
-     :target: https://github.com/maykinmedia/django_setup_configuration/actions?query=workflow%3A%22Code+quality+checks%22
+     :target: https://github.com/maykinmedia/django-setup-configuration/actions?query=workflow%3A%22Code+quality+checks%22
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-.. |coverage| image:: https://codecov.io/gh/maykinmedia/django_setup_configuration/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/django_setup_configuration
+.. |coverage| image:: https://codecov.io/gh/maykinmedia/django-setup-configuration/branch/main/graph/badge.svg
+    :target: https://codecov.io/gh/maykinmedia/django-setup-configuration
     :alt: Coverage status
 
-.. |docs| image:: https://readthedocs.org/projects/django_setup_configuration/badge/?version=latest
-    :target: https://django_setup_configuration.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
+..
+   .. |docs| image:: https://readthedocs.org/projects/django_setup_configuration/badge/?version=latest
+       :target: https://django_setup_configuration.readthedocs.io/en/latest/?badge=latest
+       :alt: Documentation Status
 
-.. |python-versions| image:: https://img.shields.io/pypi/pyversions/django_setup_configuration.svg
+   .. |python-versions| image:: https://img.shields.io/pypi/pyversions/django-setup-configuration.svg
 
-.. |django-versions| image:: https://img.shields.io/pypi/djversions/django_setup_configuration.svg
+   .. |django-versions| image:: https://img.shields.io/pypi/djversions/django-setup-configuration.svg
 
-.. |pypi-version| image:: https://img.shields.io/pypi/v/django_setup_configuration.svg
-    :target: https://pypi.org/project/django_setup_configuration/
+   .. |pypi-version| image:: https://img.shields.io/pypi/v/django-setup-configuration.svg
+       :target: https://pypi.org/project/django-setup-configuration/
