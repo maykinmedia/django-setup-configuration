@@ -17,7 +17,6 @@ Features
 ========
 
 * management command, which runs the ordered list of all configuration steps
-* docker-compose example to use the command as an init container
 
 .. toctree::
    :maxdepth: 2
