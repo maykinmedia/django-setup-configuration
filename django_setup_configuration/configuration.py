@@ -1,11 +1,8 @@
-import logging
 from abc import ABC, abstractmethod
 
 from django.conf import settings
 
 from .exceptions import PrerequisiteFailed
-
-logger = logging.getLogger(__name__)
 
 
 class BaseConfigurationStep(ABC):

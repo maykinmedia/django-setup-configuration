@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "django_setup_configuration"
 version = "0.1.0"
-description = "TODO"
+description = "Pluggable configuration setup used with the django management command"
 authors = [
     {name = "Maykin Media", email = "support@maykinmedia.nl"}
 ]
 readme = "README.rst"
 license = {file = "LICENSE"}
-keywords = ["TODO"]
+keywords = ["Django", "Configuration"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: Django",
@@ -31,15 +31,17 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/maykinmedia/django_setup_configuration"
-Documentation = "http://django_setup_configuration.readthedocs.io/en/latest/"
-"Bug Tracker" = "https://github.com/maykinmedia/django_setup_configuration/issues"
-"Source Code" = "https://github.com/maykinmedia/django_setup_configuration"
+Homepage = "https://github.com/maykinmedia/django-setup-configuration"
+Documentation = "http://django-setup-configuration.readthedocs.io/en/latest/"
+"Bug Tracker" = "https://github.com/maykinmedia/django-setup-configuration/issues"
+"Source Code" = "https://github.com/maykinmedia/django-setup-configuration"
 
 [project.optional-dependencies]
 tests = [
     "pytest",
     "pytest-django",
+    "pytest-mock",
+    "furl",
     "tox",
     "isort",
     "black",

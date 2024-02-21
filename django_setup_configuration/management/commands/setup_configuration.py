@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
+from django.db import transaction
 from django.utils.module_loading import import_string
 
 from ...configuration import BaseConfigurationStep
@@ -36,15 +37,22 @@ class Command(BaseCommand):
             ),
         )
 
+    @transaction.atomic
     def handle(self, **options):
         overwrite: bool = options["overwrite"]
 
-        # todo transaction atomic
         errors = ErrorDict()
         steps: list[BaseConfigurationStep] = [
             import_string(path)() for path in settings.SETUP_CONFIGURATION_STEPS
         ]
         enabled_steps = [step for step in steps if step.is_enabled()]
+
+        if not enabled_steps:
+            self.stdout.write(
+                "There are no enabled configuration steps. "
+                "Configuration can't be set up"
+            )
+            return
 
         self.stdout.write(
             f"Configuration would be set up with following steps: {enabled_steps}"
