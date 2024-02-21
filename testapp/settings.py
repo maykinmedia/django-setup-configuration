@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent
@@ -50,3 +51,16 @@ TEMPLATES = [
 ]
 
 ROOT_URLCONF = "testapp.urls"
+
+#
+# django-setup-configuration settings
+#
+SETUP_CONFIGURATION_STEPS = ["testapp.configuration.UserConfigurationStep"]
+
+
+#
+# testapp settings
+#
+USER_CONFIGURATION_ENABLED = os.getenv("USER_CONFIGURATION_ENABLED", True)
+USER_CONFIGURATION_USERNAME = os.getenv("USER_CONFIGURATION_USERNAME", "demo")
+USER_CONFIGURATION_PASSWORD = os.getenv("USER_CONFIGURATION_PASSWORD", "secret")
