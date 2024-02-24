@@ -143,3 +143,16 @@ def test_command_failed_selftest(mocker):
     )
     assert exc.value.args[0] == exc_description
     assert User.objects.count() == 0
+
+
+def test_command_skip_selftest(mocker):
+    """
+    test that command skips selftest
+    """
+    stdout = StringIO()
+    mocker.patch("testapp.configuration.authenticate", return_value=None)
+
+    call_command("setup_configuration", no_selftest=True, stdout=stdout)
+
+    output = stdout.getvalue()
+    assert "Selftest is skipped." in output

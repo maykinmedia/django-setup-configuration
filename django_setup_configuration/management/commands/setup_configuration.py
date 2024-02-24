@@ -36,10 +36,20 @@ class Command(BaseCommand):
                 "of the env variables have been changed."
             ),
         )
+        parser.add_argument(
+            "--no-selftest",
+            action="store_true",
+            dest="skip_selftest",
+            help=(
+                "Skip checking if configuration is successful. Use it if you "
+                "run this command in the init container before the web app is started"
+            ),
+        )
 
     @transaction.atomic
     def handle(self, **options):
         overwrite: bool = options["overwrite"]
+        skip_selftest: bool = options["skip_selftest"]
 
         errors = ErrorDict()
         steps: list[BaseConfigurationStep] = [
@@ -89,16 +99,19 @@ class Command(BaseCommand):
                     configured_steps.append(step)
 
         # 3. Test configuration
-        for step in configured_steps:
-            # todo global env to turn off self tests?
-            try:
-                step.test_configuration()
-            except SelfTestFailed as exc:
-                errors[step] = exc
+        if skip_selftest:
+            self.stdout.write("Selftest is skipped.")
 
-        if errors:
-            raise CommandError(
-                f"Configuration test failed with errors: {errors.as_text()}"
-            )
+        else:
+            for step in configured_steps:
+                try:
+                    step.test_configuration()
+                except SelfTestFailed as exc:
+                    errors[step] = exc
+
+            if errors:
+                raise CommandError(
+                    f"Configuration test failed with errors: {errors.as_text()}"
+                )
 
         self.stdout.write(self.style.SUCCESS("Instance configuration completed."))
