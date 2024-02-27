@@ -23,7 +23,7 @@ def test_command_success():
     output = stdout.getvalue().splitlines()
     step = UserConfigurationStep()
     expected_output = [
-        f"Configuration would be set up with following steps: [{step}]",
+        f"Configuration will be set up with following steps: [{step}]",
         f"Configuring {step}...",
         f"{step} is successfully configured",
         "Instance configuration completed.",
@@ -54,7 +54,7 @@ def test_command_called_twice(settings):
     output = stdout.getvalue().splitlines()
     step = UserConfigurationStep()
     expected_output = [
-        f"Configuration would be set up with following steps: [{step}]",
+        f"Configuration will be set up with following steps: [{step}]",
         f"Step {step} is skipped, because the configuration already exists.",
         "Instance configuration completed.",
     ]
@@ -82,7 +82,7 @@ def test_command_called_twice_with_overwrite():
     output = stdout.getvalue().splitlines()
     step = UserConfigurationStep()
     expected_output = [
-        f"Configuration would be set up with following steps: [{step}]",
+        f"Configuration will be set up with following steps: [{step}]",
         f"Configuring {step}...",
         f"{step} is successfully configured",
         "Instance configuration completed.",

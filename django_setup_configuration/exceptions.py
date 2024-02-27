@@ -6,17 +6,17 @@ class ConfigurationException(Exception):
 
 class PrerequisiteFailed(ConfigurationException):
     """
-    Raise an error then configuration step can't be started
+    Raises an error when the configuration step can't be started
     """
 
 
 class ConfigurationRunFailed(ConfigurationException):
     """
-    Raise an error then configuration process was faulty
+    Raises an error when the configuration process was faulty
     """
 
 
 class SelfTestFailed(ConfigurationException):
     """
-    Raise an error for failed configuration self-tests.
+    Raises an error for failed configuration self-tests.
     """

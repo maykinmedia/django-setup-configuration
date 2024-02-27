@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 from django.db import transaction
@@ -9,7 +7,7 @@ from ...configuration import BaseConfigurationStep
 from ...exceptions import ConfigurationRunFailed, PrerequisiteFailed, SelfTestFailed
 
 
-class ErrorDict(OrderedDict):
+class ErrorDict(dict):
     """
     small helper to display errors
     """
@@ -21,7 +19,7 @@ class ErrorDict(OrderedDict):
 
 class Command(BaseCommand):
     help = (
-        "Bootstrap the initial Open Zaak configuration. "
+        "Bootstrap the initial configuration of the application. "
         "This command is run only in non-interactive mode with settings "
         "configured mainly via environment variables."
     )
