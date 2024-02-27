@@ -65,7 +65,7 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(
-            f"Configuration would be set up with following steps: {enabled_steps}"
+            f"Configuration will be set up with following steps: {enabled_steps}"
         )
 
         # 1. Check prerequisites of all steps
