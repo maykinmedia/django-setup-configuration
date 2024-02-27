@@ -21,7 +21,9 @@ class BaseConfigurationStep(ABC):
         if prerequisites are missing
         """
         missing = [
-            var for var in self.required_settings if not getattr(settings, var, None)
+            var
+            for var in self.required_settings
+            if getattr(settings, var, None) in [None, ""]
         ]
         if missing:
             raise PrerequisiteFailed(
