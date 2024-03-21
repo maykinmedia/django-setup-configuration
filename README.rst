@@ -5,14 +5,14 @@ Welcome to django_setup_configuration's documentation!
 
 :Version: 0.1.0
 :Source: https://github.com/maykinmedia/django-setup-configuration
-:Keywords: ``<keywords>``
+:Keywords: Configuration
 :PythonVersion: 3.10
 
 |build-status| |code-quality| |black| |coverage| |docs|
 
 |python-versions| |django-versions| |pypi-version|
 
-<One liner describing the project>
+Manage your configuration via django command.
 
 .. contents::
 
@@ -21,8 +21,7 @@ Welcome to django_setup_configuration's documentation!
 Features
 ========
 
-* ...
-* ...
+* management command, which runs the ordered list of all configuration steps
 
 Installation
 ============
@@ -31,26 +30,36 @@ Requirements
 ------------
 
 * Python 3.10 or above
-* Django 4.2 or newer
+* Django 3.2 or newer
 
 
 Install
 -------
 
+1. Install from PyPI
+
 .. code-block:: bash
 
     pip install django-setup-configuration
+
+2. Add ``django_setup_configuration`` to the ``INSTALLED_APPS`` setting.
 
 
 Usage
 =====
 
-<document or refer to docs>
+1. Create configurations steps based on ``BaseConfigurationStep`` class.
+
+2. Specify these steps in ``SETUP_CONFIGURATION_STEPS`` setting.
+
+3. Run ``setup_configuration`` management command manually or put it in the init container
+   during deployment.
+
 
 Local development
 =================
 
-To install and develop the library locally, use::
+To install and develop the library locally, use:
 
 .. code-block:: bash
 
