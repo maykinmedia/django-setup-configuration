@@ -1,7 +1,7 @@
 
 
 Welcome to django_setup_configuration's documentation!
-=================================================
+======================================================
 
 :Version: 0.1.0
 :Source: https://github.com/maykinmedia/django-setup-configuration
