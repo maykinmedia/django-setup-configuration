@@ -2,8 +2,19 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
+from django_setup_configuration.base import ConfigSettingsModel
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.exceptions import SelfTestFailed
+
+from .config_models import ProductConfig
+
+
+class ProductConfigurationSettings(ConfigSettingsModel):
+    model = ProductConfig
+    display_name = "Product Configuration"
+    namespace = "PRODUCT"
+    required_fields = ("name", "service_url")
+    all_fields = required_fields + ("tags",)
 
 
 class UserConfigurationStep(BaseConfigurationStep):

@@ -31,17 +31,18 @@ class ConfigurationRegistry:
             try:
                 model = import_string(mapping["model"])
             except ImportError as exc:
-                exc.add_note(
-                    "\nHint: check your settings for django-setup-configuration"
-                )
-                raise
+                raise ImproperlyConfigured(
+                    "\n\nThe class testapp.models.bogus was not found\n"
+                    "Check the DJANGO_SETUP_CONFIG_REGISTER setting for "
+                    "django-setup-configuration"
+                ) from exc
             else:
                 setattr(self, file_name, model)
 
     @property
-    def fields(self) -> tuple[ConfigSettingsModel, ...]:
+    def config_models(self) -> tuple[ConfigSettingsModel, ...]:
         return tuple(getattr(self, key) for key in vars(self).keys())
 
     @property
-    def field_names(self) -> tuple[str, ...]:
+    def config_model_keys(self) -> tuple[str, ...]:
         return tuple(key for key in vars(self).keys())

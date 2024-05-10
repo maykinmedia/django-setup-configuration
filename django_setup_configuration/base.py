@@ -5,9 +5,9 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from django.db.models.fields.json import JSONField
-from django.db.models.fields.related import ForeignKey, OneToOneField
+from django.db.models.fields.related import OneToOneField
 
-from .constants import BasicFieldDescription
+from .constants import basic_field_description
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,7 +16,7 @@ class ConfigField:
     verbose_name: str
     description: str
     default_value: str
-    values: str
+    field_description: str
 
 
 @dataclass
@@ -78,17 +78,16 @@ class ConfigSettingsModel:
         return default
 
     @staticmethod
-    def get_example_values(field: models.Field) -> str:
+    def get_field_description(field: models.Field) -> str:
         # fields with choices
         if choices := field.choices:
-            values = [choice[0] for choice in choices]
-            return ", ".join(values)
+            example_values = [choice[0] for choice in choices]
+            return ", ".join(example_values)
 
-        # other fields
-        field_type = field.get_internal_type()
+        field_type = type(field)
         match field_type:
-            case item if item in BasicFieldDescription.names:
-                return getattr(BasicFieldDescription, field_type)
+            case item if item in basic_field_description.keys():
+                return basic_field_description.get(item)
             case _:
                 return "No information available"
 
@@ -116,13 +115,16 @@ class ConfigSettingsModel:
         add it to `self.fields.all` and `self.fields.required`
 
         Basic fields (`CharField`, `IntegerField` etc) constitute the base case,
-        relations (`ForeignKey`, `OneToOneField`) are handled recursively
+        one-to-one relations (`OneToOneField`) are handled recursively
+
+        `ForeignKey` and `ManyToManyField` are currently not supported (these require
+        special care to avoid recursion errors)
         """
 
         model_fields = self.get_concrete_model_fields(model)
 
         for model_field in model_fields:
-            if isinstance(model_field, (ForeignKey, OneToOneField)):
+            if isinstance(model_field, OneToOneField):
                 self.create_config_fields(
                     require=require,
                     exclude=exclude,
@@ -146,7 +148,7 @@ class ConfigSettingsModel:
                     verbose_name=model_field.verbose_name,
                     description=model_field.help_text,
                     default_value=self.get_default_value(model_field),
-                    values=self.get_example_values(model_field),
+                    field_description=self.get_field_description(model_field),
                 )
 
                 if config_field.name in self.required_fields:

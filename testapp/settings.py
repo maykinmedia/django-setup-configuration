@@ -9,8 +9,11 @@ USE_TZ = True
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "django_setup_configuration.db",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "postgres",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "localhost",
     }
 }
 
@@ -64,3 +67,12 @@ SETUP_CONFIGURATION_STEPS = ["testapp.configuration.UserConfigurationStep"]
 USER_CONFIGURATION_ENABLED = os.getenv("USER_CONFIGURATION_ENABLED", True)
 USER_CONFIGURATION_USERNAME = os.getenv("USER_CONFIGURATION_USERNAME", "demo")
 USER_CONFIGURATION_PASSWORD = os.getenv("USER_CONFIGURATION_PASSWORD", "secret")
+
+DJANGO_SETUP_CONFIG_REGISTER = [
+    {
+        "model": "testapp.configuration.ProductConfigurationSettings",
+        "file_name": "product",
+    }
+]
+DJANGO_SETUP_CONFIG_TEMPLATE_NAME = "testapp/config_doc.rst"
+DJANGO_SETUP_CONFIG_DOC_DIR = "testapp/docs/configuration"

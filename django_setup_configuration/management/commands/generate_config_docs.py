@@ -8,12 +8,12 @@ from ...base import ConfigSettingsModel
 from ...exceptions import ConfigurationException
 from ...registry import ConfigurationRegistry
 
-TEMPLATE_NAME = settings.DJANGO_SETUP_CONFIG_TEMPLATE_NAME
-TARGET_DIR = settings.DJANGO_SETUP_CONFIG_DOC_DIR
-
 
 class ConfigDocBaseCommand(BaseCommand):
-    registry = ConfigurationRegistry()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.registry = ConfigurationRegistry()
 
     def get_config(
         self, config_option: str, class_name_only=False
@@ -25,14 +25,14 @@ class ConfigDocBaseCommand(BaseCommand):
         config_instance = config_model()
         return config_instance
 
-    def get_detailed_info(self, config: ConfigSettingsModel) -> list[list[str]]:
+    def get_detailed_info(self, config=ConfigSettingsModel) -> list[list[str]]:
         ret = []
         for field in config.config_fields.all:
             part = []
             part.append(f"{'Variable':<20}{config.get_setting_name(field)}")
             part.append(f"{'Setting':<20}{field.verbose_name}")
             part.append(f"{'Description':<20}{field.description or 'No description'}")
-            part.append(f"{'Possible values':<20}{field.values}")
+            part.append(f"{'Possible values':<20}{field.field_description}")
             part.append(f"{'Default value':<20}{field.default_value}")
             ret.append(part)
         return ret
@@ -69,7 +69,7 @@ class ConfigDocBaseCommand(BaseCommand):
             "title": self.format_display_name(config.display_name),
         }
 
-        template = loader.get_template(TEMPLATE_NAME)
+        template = loader.get_template(settings.DJANGO_SETUP_CONFIG_TEMPLATE_NAME)
         rendered = template.render(template_variables)
 
         return rendered
@@ -84,6 +84,8 @@ class Command(ConfigDocBaseCommand):
     def write_doc(self, config_option: str) -> None:
         rendered = self.render_doc(config_option)
 
+        TARGET_DIR = settings.DJANGO_SETUP_CONFIG_DOC_DIR
+
         pathlib.Path(TARGET_DIR).mkdir(parents=True, exist_ok=True)
 
         output_path = f"{TARGET_DIR}/{config_option}.rst"
@@ -91,10 +93,12 @@ class Command(ConfigDocBaseCommand):
         with open(output_path, "w+") as output:
             output.write(rendered)
 
+        return rendered
+
     def handle(self, *args, **kwargs) -> None:
         config_option = kwargs["config_option"]
 
-        supported_options = self.registry.field_names
+        supported_options = self.registry.config_model_keys
 
         if config_option and config_option not in supported_options:
             raise ConfigurationException(
@@ -102,7 +106,8 @@ class Command(ConfigDocBaseCommand):
                 f"Supported: {', '.join(supported_options)}"
             )
         elif config_option:
-            self.write_doc(config_option)
+            rendered = self.write_doc(config_option)
         else:
             for option in supported_options:
-                self.write_doc(option)
+                rendered = self.write_doc(option)
+        return rendered
