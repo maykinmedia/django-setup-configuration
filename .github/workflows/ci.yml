@@ -48,8 +48,6 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python }}
           DJANGO: ${{ matrix.django }}
-          POSTGRES_USER: postgres
-          POSTGRES_HOST: localhost
 
       - name: Publish coverage report
         uses: codecov/codecov-action@v3

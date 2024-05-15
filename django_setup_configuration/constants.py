@@ -1,18 +1,17 @@
-from django.contrib import postgres
 from django.db import models
 
-basic_field_description = {
-    postgres.fields.ArrayField: "string, comma-delimited ('foo,bar,baz')",
+basic_field_descriptions = {
     models.BooleanField: "True, False",
     models.CharField: "string",
+    models.EmailField: "string representing an Email address (foo@bar.com)",
     models.FileField: (
-        "string represeting the (absolute) path to a file, "
+        "string representing the (absolute) path to a file, "
         "including file extension: {example}".format(
             example="/absolute/path/to/file.xml"
         )
     ),
     models.ImageField: (
-        "string represeting the (absolute) path to an image file, "
+        "string representing the (absolute) path to an image file, "
         "including file extension: {example}".format(
             example="/absolute/path/to/image.png"
         )

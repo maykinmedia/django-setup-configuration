@@ -8,11 +8,13 @@ Settings Overview
 Enable/Disable configuration:
 """""""""""""""""""""""""""""
 
+{% if required_settings %}
 ::
 
     {% spaceless %}
     {{ enable_settings }}
     {% endspaceless %}
+{% endif %}
 
 {% if required_settings %}
 Required:

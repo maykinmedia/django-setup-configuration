@@ -3,31 +3,22 @@ import pathlib
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.template import loader
+from django.utils.module_loading import import_string
 
 from ...base import ConfigSettingsModel
-from ...exceptions import ConfigurationException
-from ...registry import ConfigurationRegistry
 
 
-class ConfigDocBaseCommand(BaseCommand):
+class ConfigDocBase:
+    """
+    Base class encapsulating the functionality for generating + checking documentation.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.registry = ConfigurationRegistry()
+    Defined independently of `BaseCommand` for more flexibility (the class could be
+    used without running a Django management command).
+    """
 
-    def get_config(
-        self, config_option: str, class_name_only=False
-    ) -> ConfigSettingsModel:
-        config_model = getattr(self.registry, config_option, None)
-        if class_name_only:
-            return config_model.__name__
-
-        config_instance = config_model()
-        return config_instance
-
-    def get_detailed_info(self, config=ConfigSettingsModel) -> list[list[str]]:
+    def get_detailed_info(self, config: ConfigSettingsModel) -> list[list[str]]:
         ret = []
-        for field in config.config_fields.all:
+        for field in config.config_fields:
             part = []
             part.append(f"{'Variable':<20}{config.get_setting_name(field)}")
             part.append(f"{'Setting':<20}{field.verbose_name}")
@@ -37,77 +28,83 @@ class ConfigDocBaseCommand(BaseCommand):
             ret.append(part)
         return ret
 
-    def format_display_name(self, display_name):
+    def format_display_name(self, display_name: str) -> str:
         """Surround title with '=' to display as heading in rst file"""
 
         heading_bar = "=" * len(display_name)
         display_name_formatted = f"{heading_bar}\n{display_name}\n{heading_bar}"
         return display_name_formatted
 
-    def render_doc(self, config_option: str) -> None:
-        config = self.get_config(config_option)
+    def render_doc(self, config_settings: ConfigSettingsModel, config_step) -> None:
+        # 1.
+        enable_setting = getattr(config_step, "enable_setting", None)
 
-        required_settings = [
-            config.get_setting_name(field) for field in config.config_fields.required
-        ]
-        required_settings.sort()
+        # 2.
+        required_settings = getattr(config_step, "required_settings", None)
+        if required_settings:
+            required_settings.sort()
 
+        # 3.
         all_settings = [
-            config.get_setting_name(field) for field in config.config_fields.all
+            config_settings.get_setting_name(field)
+            for field in config_settings.config_fields
         ]
         all_settings.sort()
 
-        detailed_info = self.get_detailed_info(config)
+        # 4.
+        detailed_info = self.get_detailed_info(config_settings)
         detailed_info.sort()
 
+        # 5.
+        title = self.format_display_name(config_step.verbose_name)
+
         template_variables = {
-            "enable_settings": f"{config.namespace}_CONFIG_ENABLE",
+            "enable_settings": enable_setting,
             "required_settings": required_settings,
             "all_settings": all_settings,
             "detailed_info": detailed_info,
-            "link": f".. _{config_option}:",
-            "title": self.format_display_name(config.display_name),
+            "link": f".. _{config_settings.file_name}:",
+            "title": title,
         }
 
-        template = loader.get_template(settings.DJANGO_SETUP_CONFIG_TEMPLATE_NAME)
+        template = loader.get_template(settings.DJANGO_SETUP_CONFIG_TEMPLATE)
         rendered = template.render(template_variables)
 
         return rendered
 
 
-class Command(ConfigDocBaseCommand):
-    help = "Create documentation for configuration setup steps"
+class Command(ConfigDocBase, BaseCommand):
+    help = "Generate documentation for configuration setup steps"
 
-    def add_arguments(self, parser):
-        parser.add_argument("config_option", nargs="?")
+    def content_is_up_to_date(self, rendered_content: str, doc_path: str) -> bool:
+        """
+        Check that documentation at `doc_path` exists and that its content matches
+        that of `rendered_content`
+        """
+        try:
+            with open(doc_path, "r") as file:
+                file_content = file.read()
+        except FileNotFoundError:
+            return False
 
-    def write_doc(self, config_option: str) -> None:
-        rendered = self.render_doc(config_option)
+        if not file_content == rendered_content:
+            return False
 
-        TARGET_DIR = settings.DJANGO_SETUP_CONFIG_DOC_DIR
+        return True
 
-        pathlib.Path(TARGET_DIR).mkdir(parents=True, exist_ok=True)
+    def handle(self, *args, **kwargs) -> str:
+        target_dir = settings.DJANGO_SETUP_CONFIG_DOC_PATH
 
-        output_path = f"{TARGET_DIR}/{config_option}.rst"
+        # create directory for docs if it doesn't exist
+        pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, "w+") as output:
-            output.write(rendered)
+        for config_string in settings.SETUP_CONFIGURATION_STEPS:
+            config_step = import_string(config_string)
 
-        return rendered
+            if config_settings := getattr(config_step, "config_settings", None):
+                doc_path = f"{target_dir}/{config_settings.file_name}.rst"
+                rendered_content = self.render_doc(config_settings, config_step)
 
-    def handle(self, *args, **kwargs) -> None:
-        config_option = kwargs["config_option"]
-
-        supported_options = self.registry.config_model_keys
-
-        if config_option and config_option not in supported_options:
-            raise ConfigurationException(
-                f"Unsupported config option ({config_option})\n"
-                f"Supported: {', '.join(supported_options)}"
-            )
-        elif config_option:
-            rendered = self.write_doc(config_option)
-        else:
-            for option in supported_options:
-                rendered = self.write_doc(option)
-        return rendered
+                if not self.content_is_up_to_date(rendered_content, doc_path):
+                    with open(doc_path, "w+") as output:
+                        output.write(rendered_content)

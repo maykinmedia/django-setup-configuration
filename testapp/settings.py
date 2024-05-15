@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve(strict=True).parent
 
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
@@ -13,7 +15,8 @@ DATABASES = {
         "NAME": "postgres",
         "USER": "postgres",
         "PASSWORD": "postgres",
-        "HOST": "localhost",
+        # set DB_HOST="" in .env to connect via socket
+        "HOST": config("DB_HOST", "localhost"),
     }
 }
 
@@ -68,11 +71,5 @@ USER_CONFIGURATION_ENABLED = os.getenv("USER_CONFIGURATION_ENABLED", True)
 USER_CONFIGURATION_USERNAME = os.getenv("USER_CONFIGURATION_USERNAME", "demo")
 USER_CONFIGURATION_PASSWORD = os.getenv("USER_CONFIGURATION_PASSWORD", "secret")
 
-DJANGO_SETUP_CONFIG_REGISTER = [
-    {
-        "model": "testapp.configuration.ProductConfigurationSettings",
-        "file_name": "product",
-    }
-]
-DJANGO_SETUP_CONFIG_TEMPLATE_NAME = "testapp/config_doc.rst"
-DJANGO_SETUP_CONFIG_DOC_DIR = "testapp/docs/configuration"
+DJANGO_SETUP_CONFIG_TEMPLATE = "testapp/config_doc.rst"
+DJANGO_SETUP_CONFIG_DOC_PATH = "testapp/docs/configuration"

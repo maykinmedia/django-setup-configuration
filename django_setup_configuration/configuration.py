@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from django.conf import settings
 
+from .base import ConfigSettingsModel
 from .exceptions import PrerequisiteFailed
 
 
@@ -9,6 +10,7 @@ class BaseConfigurationStep(ABC):
     verbose_name: str
     required_settings: list[str] = []
     enable_setting: str = ""
+    config_settings: ConfigSettingsModel
 
     def __repr__(self):
         return self.verbose_name

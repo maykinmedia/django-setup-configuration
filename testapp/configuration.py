@@ -6,16 +6,6 @@ from django_setup_configuration.base import ConfigSettingsModel
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.exceptions import SelfTestFailed
 
-from .config_models import ProductConfig
-
-
-class ProductConfigurationSettings(ConfigSettingsModel):
-    model = ProductConfig
-    display_name = "Product Configuration"
-    namespace = "PRODUCT"
-    required_fields = ("name", "service_url")
-    all_fields = required_fields + ("tags",)
-
 
 class UserConfigurationStep(BaseConfigurationStep):
     """
@@ -26,8 +16,17 @@ class UserConfigurationStep(BaseConfigurationStep):
     """
 
     verbose_name = "User Configuration"
-    required_settings = ["USER_CONFIGURATION_USERNAME", "USER_CONFIGURATION_PASSWORD"]
     enable_setting = "USER_CONFIGURATION_ENABLED"
+    required_settings = [
+        "USER_CONFIGURATION_USERNAME",
+        "USER_CONFIGURATION_PASSWORD",
+    ]
+    config_settings = ConfigSettingsModel(
+        models=[User],
+        file_name="user",
+        namespace="USER_CONFIGURATION",
+        excluded_fields=["id", "date_joined", "is_active", "last_login"],
+    )
 
     def is_configured(self) -> bool:
         return User.objects.filter(

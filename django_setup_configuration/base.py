@@ -1,13 +1,16 @@
-from dataclasses import dataclass, field
-from typing import Iterator, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Iterator, Mapping, Sequence, Type
 
+from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from django.db.models.fields.json import JSONField
 from django.db.models.fields.related import OneToOneField
+from django.utils.module_loading import import_string
 
-from .constants import basic_field_description
+from .constants import basic_field_descriptions
+from .exceptions import ImproperlyConfigured
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,33 +22,31 @@ class ConfigField:
     field_description: str
 
 
-@dataclass
-class Fields:
-    all: set[ConfigField] = field(default_factory=set)
-    required: set[ConfigField] = field(default_factory=set)
-
-
 class ConfigSettingsModel:
-    model: models.Model
+    models: list[Type[models.Model]]
     display_name: str
     namespace: str
-    required_fields = tuple()
-    all_fields = tuple()
-    excluded_fields = ("id",)
+    excluded_fields = ["id"]
 
-    def __init__(self):
-        self.config_fields = Fields()
+    def __init__(self, *args, **kwargs):
+        self.config_fields: list = []
 
-        self.create_config_fields(
-            require=self.required_fields,
-            exclude=self.excluded_fields,
-            include=self.all_fields,
-            model=self.model,
-        )
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
-    @classmethod
-    def get_setting_name(cls, field: ConfigField) -> str:
-        return f"{cls.namespace}_" + field.name.upper()
+        self.update_field_descriptions()
+
+        if not self.models:
+            return
+
+        for model in self.models:
+            self.create_config_fields(
+                exclude=self.excluded_fields,
+                model=model,
+            )
+
+    def get_setting_name(self, field: ConfigField) -> str:
+        return f"{self.namespace}_" + field.name.upper()
 
     @staticmethod
     def get_default_value(field: models.Field) -> str:
@@ -78,18 +79,41 @@ class ConfigSettingsModel:
         return default
 
     @staticmethod
+    def update_field_descriptions() -> None:
+        """
+        Add custom fields + descriptions defined in settings to
+        `basic_field_descriptions`
+        """
+        custom_fields = getattr(settings, "DJANGO_SETUP_CONFIG_CUSTOM_FIELDS", None)
+        if not custom_fields:
+            return
+
+        for mapping in custom_fields:
+            try:
+                field = import_string(mapping["field"])
+            except ImportError as exc:
+                raise ImproperlyConfigured(
+                    "\n\nSomething went wrong when importing {field}.\n"
+                    "Check your settings for django-setup-configuration".format(
+                        field=mapping["field"]
+                    )
+                ) from exc
+            else:
+                description = mapping["description"]
+                basic_field_descriptions[field] = description
+
+    @staticmethod
     def get_field_description(field: models.Field) -> str:
         # fields with choices
         if choices := field.choices:
             example_values = [choice[0] for choice in choices]
             return ", ".join(example_values)
 
+        # other fields
         field_type = type(field)
-        match field_type:
-            case item if item in basic_field_description.keys():
-                return basic_field_description.get(item)
-            case _:
-                return "No information available"
+        if field_type in basic_field_descriptions.keys():
+            return basic_field_descriptions.get(field_type)
+        return "No information available"
 
     def get_concrete_model_fields(self, model) -> Iterator[models.Field]:
         """
@@ -104,15 +128,13 @@ class ConfigSettingsModel:
 
     def create_config_fields(
         self,
-        require: tuple[str, ...],
-        exclude: tuple[str, ...],
-        include: tuple[str, ...],
-        model: models.Model,
+        exclude: list[str],
+        model: Type[models.Model],
         relating_field: models.Field | None = None,
     ) -> None:
         """
         Create a `ConfigField` instance for each field of the given `model` and
-        add it to `self.fields.all` and `self.fields.required`
+        add it to `self.fields`
 
         Basic fields (`CharField`, `IntegerField` etc) constitute the base case,
         one-to-one relations (`OneToOneField`) are handled recursively
@@ -126,9 +148,7 @@ class ConfigSettingsModel:
         for model_field in model_fields:
             if isinstance(model_field, OneToOneField):
                 self.create_config_fields(
-                    require=require,
                     exclude=exclude,
-                    include=include,
                     model=model_field.related_model,
                     relating_field=model_field,
                 )
@@ -151,18 +171,7 @@ class ConfigSettingsModel:
                     field_description=self.get_field_description(model_field),
                 )
 
-                if config_field.name in self.required_fields:
-                    self.config_fields.required.add(config_field)
+                self.config_fields.append(config_field)
 
-                # if all_fields is empty, that means we're filtering by blacklist,
-                # hence the config_field is included by default
-                if not self.all_fields or config_field.name in self.all_fields:
-                    self.config_fields.all.add(config_field)
-
-    def get_required_settings(self) -> tuple[str, ...]:
-        return tuple(
-            self.get_setting_name(field) for field in self.config_fields.required
-        )
-
-    def get_config_mapping(self) -> dict[str, ConfigField]:
-        return {self.get_setting_name(field): field for field in self.config_fields.all}
+    def get_required_settings(self) -> list[str]:
+        return [self.get_setting_name(field) for field in self.config_fields.required]
