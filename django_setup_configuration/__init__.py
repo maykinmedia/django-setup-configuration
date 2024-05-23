@@ -1,5 +1,5 @@
-from .base import ConfigSettingsModel
+from .config_settings import ConfigSettings
 
 __all__ = [
-    "ConfigSettingsModel",
+    "ConfigSettings",
 ]

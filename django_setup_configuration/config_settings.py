@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Iterator, Mapping, Sequence, Type
+from typing import Mapping, Sequence, Type
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from django.db.models.fields.json import JSONField
-from django.db.models.fields.related import OneToOneField
+from django.db.models.fields.related import ForeignKey, OneToOneField
 from django.utils.module_loading import import_string
 
 from .constants import basic_field_descriptions
@@ -22,31 +22,74 @@ class ConfigField:
     field_description: str
 
 
-class ConfigSettingsModel:
-    models: list[Type[models.Model]]
-    display_name: str
-    namespace: str
-    excluded_fields = ["id"]
+class ConfigSettings:
+    """
+    Settings for configuration steps, used to generate documentation.
 
-    def __init__(self, *args, **kwargs):
-        self.config_fields: list = []
+    Attributes:
+        namespace (`str`): the namespace of configuration variables for a given
+            configuration
+        file_name (`str`): the name of the file where the documentation is stored
+        models (`list`): a list of models from which documentation is retrieved
+        update_field_descriptions (`bool`): if `True`, custom model fields
+            (along with their descriptions) are loaded via the settings variable
+            `DJANGO_SETUP_CONFIG_CUSTOM_FIELDS`
+        required_settings (`list`): required settings for a configuration step
+        optional_settings (`list`): optional settings for a configuration step
+        detailed_info (`dict`): information for configuration settings which are
+            not associated with a particular model field
+
+    Example:
+        Given a configuration step `FooConfigurationStep`: ::
+
+        FooConfigurationStep(BaseConfigurationStep):
+            verbose_name = "Configuration step for Foo"
+            enable_setting = "FOO_CONFIG_ENABLE"
+            config_settings = ConfigSettings(
+                namespace="FOO",
+                file_name="foo",
+                models=["FooConfigurationModel"],
+                required_settings=[
+                    "FOO_SOME_SETTING",
+                    "FOO_SOME_OTHER_SETTING",
+                ],
+                optional_settings=[
+                    "FOO_SOME_OPT_SETTING",
+                    "FOO_SOME_OTHER_OPT_SETTING",
+                ],
+                detailed_info={
+                    "example_non_model_field": {
+                        "variable": "FOO_EXAMPLE_NON_MODEL_FIELD",
+                        "description": "Documentation for a field that could not
+                            be retrievend from a model",
+                        "possible_values": "string (URL)",
+                    },
+                },
+            )
+    """
+
+    namespace: str
+    file_name: str
+    models: list[Type[models.Model]] | None
+    required_settings: list[str] = []
+    optional_settings: list[str] = []
+    detailed_info: dict[str, dict[str, str]] | None
+
+    def __init__(self, *args, update_field_descriptions: bool = False, **kwargs):
+        self.config_fields: list[ConfigField] = []
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        self.update_field_descriptions()
-
-        if not self.models:
+        if not getattr(self, "models", None):
             return
 
-        for model in self.models:
-            self.create_config_fields(
-                exclude=self.excluded_fields,
-                model=model,
-            )
+        # add support for custom fields like PrivateMediaField
+        if update_field_descriptions:
+            self.update_field_descriptions()
 
-    def get_setting_name(self, field: ConfigField) -> str:
-        return f"{self.namespace}_" + field.name.upper()
+        for model in self.models:
+            self.create_config_fields(model=model)
 
     @staticmethod
     def get_default_value(field: models.Field) -> str:
@@ -113,22 +156,11 @@ class ConfigSettingsModel:
         field_type = type(field)
         if field_type in basic_field_descriptions.keys():
             return basic_field_descriptions.get(field_type)
-        return "No information available"
 
-    def get_concrete_model_fields(self, model) -> Iterator[models.Field]:
-        """
-        Get all concrete fields for a given `model`, skipping over backreferences like
-        `OneToOneRel` and fields that are blacklisted
-        """
-        return (
-            field
-            for field in model._meta.concrete_fields
-            if field.name not in self.excluded_fields
-        )
+        return "No information available"
 
     def create_config_fields(
         self,
-        exclude: list[str],
         model: Type[models.Model],
         relating_field: models.Field | None = None,
     ) -> None:
@@ -137,41 +169,59 @@ class ConfigSettingsModel:
         add it to `self.fields`
 
         Basic fields (`CharField`, `IntegerField` etc) constitute the base case,
-        one-to-one relations (`OneToOneField`) are handled recursively
-
-        `ForeignKey` and `ManyToManyField` are currently not supported (these require
-        special care to avoid recursion errors)
+        relations (`ForeignKey`, `OneToOneField`) are handled recursively
         """
 
-        model_fields = self.get_concrete_model_fields(model)
+        for model_field in model._meta.fields:
+            if isinstance(model_field, (ForeignKey, OneToOneField)):
+                # avoid recursion error when following ForeignKey
+                if model_field.name in ("parent", "owner"):
+                    continue
 
-        for model_field in model_fields:
-            if isinstance(model_field, OneToOneField):
                 self.create_config_fields(
-                    exclude=exclude,
                     model=model_field.related_model,
                     relating_field=model_field,
                 )
             else:
-                if model_field.name in self.excluded_fields:
-                    continue
-
                 # model field name could be "api_root",
                 # but we need "xyz_service_api_root" (or similar) for consistency
+                # when dealing with relations
                 if relating_field:
-                    name = f"{relating_field.name}_{model_field.name}"
+                    config_field_name = f"{relating_field.name}_{model_field.name}"
                 else:
-                    name = model_field.name
+                    config_field_name = model_field.name
+
+                config_setting = self.get_config_variable(config_field_name)
+
+                if not (
+                    config_setting in self.required_settings
+                    or config_setting in self.optional_settings
+                ):
+                    continue
 
                 config_field = ConfigField(
-                    name=name,
+                    name=config_field_name,
                     verbose_name=model_field.verbose_name,
                     description=model_field.help_text,
                     default_value=self.get_default_value(model_field),
                     field_description=self.get_field_description(model_field),
                 )
-
                 self.config_fields.append(config_field)
 
-    def get_required_settings(self) -> list[str]:
-        return [self.get_setting_name(field) for field in self.config_fields.required]
+    #
+    # convenience methods/properties for formatting
+    #
+    def get_config_variable(self, setting: str) -> str:
+        return f"{self.namespace}_" + setting.upper()
+
+    @property
+    def file_name(self) -> str:
+        """
+        Use `self.namespace` in lower case as default file name of the documentation
+        if `file_name` is not provided when instantiating the class
+        """
+        return getattr(self, "_file_name", None) or self.namespace.lower()
+
+    @file_name.setter
+    def file_name(self, val) -> None:
+        self._file_name = val

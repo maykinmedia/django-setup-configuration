@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.template import loader
 from django.utils.module_loading import import_string
 
-from ...base import ConfigSettingsModel
+from ...config_settings import ConfigSettings
 
 
 class ConfigDocBase:
@@ -16,16 +16,56 @@ class ConfigDocBase:
     used without running a Django management command).
     """
 
-    def get_detailed_info(self, config: ConfigSettingsModel) -> list[list[str]]:
+    @staticmethod
+    def _add_detailed_info(config_settings: ConfigSettings, result: list[str]) -> None:
+        """Convenience/helper function to retrieve additional documentation info"""
+
+        if not (info := getattr(config_settings, "detailed_info", None)):
+            return
+
+        for key, value in info.items():
+            part = []
+            part.append(f"{'Variable':<20}{value['variable']}")
+            part.append(
+                f"{'Description':<20}{value['description'] or 'No description'}"
+            )
+            part.append(
+                f"{'Possible values':<20}"
+                f"{value.get('possible_values') or 'No information available'}"
+            )
+            part.append(
+                f"{'Default value':<20}{value.get('default_value') or 'No default'}"
+            )
+            result.append(part)
+
+    def get_detailed_info(
+        self,
+        config: ConfigSettings,
+        config_step,
+        related_steps: list,
+    ) -> list[list[str]]:
+        """
+        Get information about the configuration settings:
+            1. from model fields associated with the `ConfigSettings`
+            2. from information provided manually in the `ConfigSettings`
+            3. from information provided manually in the `ConfigSettings` of related
+               configuration steps
+        """
         ret = []
         for field in config.config_fields:
             part = []
-            part.append(f"{'Variable':<20}{config.get_setting_name(field)}")
+            part.append(f"{'Variable':<20}{config.get_config_variable(field.name)}")
             part.append(f"{'Setting':<20}{field.verbose_name}")
             part.append(f"{'Description':<20}{field.description or 'No description'}")
             part.append(f"{'Possible values':<20}{field.field_description}")
             part.append(f"{'Default value':<20}{field.default_value}")
             ret.append(part)
+
+        self._add_detailed_info(config, ret)
+
+        for step in related_steps:
+            self._add_detailed_info(step.config_settings, ret)
+
         return ret
 
     def format_display_name(self, display_name: str) -> str:
@@ -35,31 +75,55 @@ class ConfigDocBase:
         display_name_formatted = f"{heading_bar}\n{display_name}\n{heading_bar}"
         return display_name_formatted
 
-    def render_doc(self, config_settings: ConfigSettingsModel, config_step) -> None:
+    def render_doc(self, config_settings: ConfigSettings, config_step) -> None:
+        """
+        Render a `ConfigSettings` documentation template with the following variables:
+            1. enable_setting
+            2. required_settings
+            3. all_settings (required_settings + optional_settings)
+            4. detailed_info
+            5. title
+            6. link (for crossreference across different files)
+        """
         # 1.
         enable_setting = getattr(config_step, "enable_setting", None)
 
         # 2.
-        required_settings = getattr(config_step, "required_settings", None)
-        if required_settings:
-            required_settings.sort()
+        required_settings = [
+            name for name in getattr(config_settings, "required_settings", [])
+        ]
+
+        # additional requirements from related configuration steps
+        related_steps = [step for step in getattr(config_step, "related_steps", [])]
+        related_requirements_lists = [
+            step.config_settings.required_settings for step in related_steps
+        ]
+        related_requirements = set(
+            item for row in related_requirements_lists for item in row
+        )
+
+        required_settings.extend(list(related_requirements))
+        required_settings.sort()
 
         # 3.
         all_settings = [
-            config_settings.get_setting_name(field)
-            for field in config_settings.config_fields
+            setting
+            for setting in config_settings.required_settings
+            + config_settings.optional_settings
         ]
         all_settings.sort()
 
         # 4.
-        detailed_info = self.get_detailed_info(config_settings)
+        detailed_info = self.get_detailed_info(
+            config_settings, config_step, related_steps
+        )
         detailed_info.sort()
 
         # 5.
         title = self.format_display_name(config_step.verbose_name)
 
         template_variables = {
-            "enable_settings": enable_setting,
+            "enable_setting": enable_setting,
             "required_settings": required_settings,
             "all_settings": all_settings,
             "detailed_info": detailed_info,

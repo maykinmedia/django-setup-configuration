@@ -5,14 +5,14 @@
 Settings Overview
 =================
 
+{% if enable_setting %}
 Enable/Disable configuration:
 """""""""""""""""""""""""""""
 
-{% if required_settings %}
 ::
 
     {% spaceless %}
-    {{ enable_settings }}
+    {{ enable_setting }}
     {% endspaceless %}
 {% endif %}
 
