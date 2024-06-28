@@ -10,134 +10,87 @@ configured with the help of the library and how.
 Setup
 """""
 
-Start by defining the target directory of the docs and the template that will be used
-to render them. For example:
+Start by defining the target directory where the docs will be saved and the template used
+to render them (a default template is included, but you can specify your own). For example:
 
 ::
 
-    DJANGO_SETUP_CONFIG_TEMPLATE_NAME = "configurations/config_doc.rst"
-    DJANGO_SETUP_CONFIG_DOC_DIR = "docs/configuration"
+    DJANGO_SETUP_CONFIG_TEMPLATE = "django-setup-configuration/config_doc.rst"
+    DJANGO_SETUP_CONFIG_DOC_PATH = "your-project/docs/configuration"
 
-Next, create a template:
+Only a subset of Django model fields (CharField, TextField...) is supported out of the box.
+The reason for this is two-fold. On the one hand, there are many custom model fields from various
+third-party libraries, and it is impossible to support documentation for all of them.
+Secondly, the exact way how certain fields are configured via strings (the values of configuration
+variables) inevitably depends on the implementation. For example, in order to configure a
+``DateTimeField`` via a string provided by the end user, the string has to be converted to a Python
+``datetime`` object. How this is done (in particular, what format of string is tolerated) depends on
+the implementation of the configuration step and cannot be anticipated by the library. For a list of
+currently supported fields, see the list of constants defined in the source code:
+`link <https://github.com/maykinmedia/django-setup-configuration/tree/main/django_setup_configuration/>`_
 
-::
-
-    {% block link %}{{ link }}{% endblock %}
-
-    {% block title %}{{ title }}{% endblock %}
-
-    Settings Overview
-    =================
-
-    Enable/Disable configuration:
-    """""""""""""""""""""""""""""
-
-    ::
-
-        {% spaceless %}
-        {{ enable_settings }}
-        {% endspaceless %}
-
-    Required:
-    """""""""
-
-    ::
-
-        {% spaceless %}
-        {% for setting in required_settings %}{{ setting }}
-        {% endfor %}
-        {% endspaceless %}
-
-    All settings:
-    """""""""""""
-
-    ::
-
-        {% spaceless %}
-        {% for setting in all_settings %}{{ setting }}
-        {% endfor %}
-        {% endspaceless %}
-
-    Detailed Information
-    ====================
-
-    ::
-
-        {% spaceless %}
-        {% for detail in detailed_info %}
-        {% for part in detail %}{{ part|safe }}
-        {% endfor %}{% endfor %}
-        {% endspaceless %}
-
-You're free to choose a different layout, of course, but this should give you an idea
-of what's available, and some of the nuisances (like spacing) you might run into.
-
-The value for ``link`` is automatically create based on the ``file_name`` you defined
-in the first step. Similarly, ``enable_settings`` is automatically created. Values for
-the other template variables are determined based on the model your client is configuring,
-and a related settings model you need to define.
-
-Generally, when adding support for configuring a model ``FooConfiguration`` with
-``django-setup-configuration``, you will have a class ``FooConfigurationStep(BaseConfigurationStep)``
-that carries out the configuration. In the same file, define a class with information about
-the fields from ``FooConfiguration`` that are required, included, or excluded, and
-meta-information required for creating the docs. For example:
-
+You can add support for additional fields like ``FileField`` or custom fields from third-party
+libraries (or your own) as follows:
 
 ::
 
-    from django-setup-configuration import ConfigSettingsModel
-
-    class FooConfigurationSettings(ConfigSettingsModel):
-        model = FooConfiguration
-        display_name = "Foo Configuration"
-        namespace = "FOO"
-        required_fields = (
-            "bar",
-            "baz",
-        )
-        included_fields =  required_fields + (
-            "foobar",
-        )
-        excluded_fields = (
-            "bogus",
-        )
-
-
-    class FooConfigurationStep(BaseConfigurationStep):
-        ...
-
-``display_name`` provides the value for ``title`` in the template above. ``namespace``
-tells you how config variables for different models are namespaced. In your settings,
-you would define ``FOO_BAR``, ``FOO_BAZ``, and ``FOO_FOOBAR``.
-
-Finally, you need to register you configuration settings class with the library:
-
-::
-
-    DJANGO_SETUP_CONFIG_REGISTER = [
+    DJANGO_SETUP_CONFIG_CUSTOM_FIELDS = [
         {
-            "model": "example_project.path.to.FooConfigurationSettings",
-            "file_name": "foo_config",
-        }
+            "field": "django_jsonform.models.fields.ArrayField",
+            "description": "string, comma-delimited ('foo,bar,baz')",
+        },
+        {
+            "field": "django.db.models.fields.files.FileField",
+            "description": "string represeting the (absolute) path to a file, including file extension",
+        },
     ]
 
 
 Usage
 """""
 
-The library provides two management commands:
+For every configuration step, define a ``ConfigSetting`` model with the appropriate settings as
+attribute on the class:
 
 ::
 
-    manage.py generate_config_docs [CONFIG_OPTION]
-    manage.py check_config_docs
+        from django-setup-configuration.config_settings import ConfigSettingsModel
+        from django-setup-configuration.models import BaseConfigurationStep
 
-The optional ``CONFIG_OPTION`` should be a ``file_name`` (without extension) that
-corresponds to a settings model (e.g. ``foo_config``). When given,
-``generate_config_docs`` will create the docs for the corresponding model. Otherwise
-the command creates docs for all supported models. ``check_config_docs`` is similar
-to ``manage.py makemigrations --check --dry-run``: it tests that documentation for your
-configuration setup steps exists and is accurate (if you make changes to
-``FooConfiguration`` or ``FooConfigurationSettings`` without re-creating the docs,
-``check_config_docs`` will raise an exception).
+        FooConfigurationStep(BaseConfigurationStep):
+            verbose_name = "Configuration step for Foo"
+            enable_setting = "FOO_CONFIG_ENABLE"
+            config_settings = ConfigSettings(
+                namespace="FOO",
+                file_name="foo",
+                models=["FooConfigurationModel"],
+                required_settings=[
+                    "FOO_SOME_SETTING",
+                    "FOO_SOME_OTHER_SETTING",
+                ],
+                optional_settings=[
+                    "FOO_SOME_OPT_SETTING",
+                    "FOO_SOME_OTHER_OPT_SETTING",
+                ],
+                additional_info={
+                    "example_non_model_field": {
+                        "variable": "FOO_EXAMPLE_NON_MODEL_FIELD",
+                        "description": "Documentation for a field that could not
+                            be retrievend from a model",
+                        "possible_values": "string (URL)",
+                    },
+                },
+            )
+
+            def configure(): ...
+
+The documentation for settings used to configure Django model fields is pulled from the help
+text of the relevant fields. You merely have to specify the models used in the configuration
+step and which settings are required/optional. ``additional_info`` is used to manually document
+configuration settings which are not associated with any model field.
+
+With everything set up, you can generate the docs with the following command:
+
+::
+
+    python manage.py generate_config_docs

@@ -24,28 +24,32 @@ class ConfigField:
 
 class ConfigSettings:
     """
-    Settings for configuration steps, used to generate documentation.
+    Settings for configuration steps, also used to generate documentation.
 
     Attributes:
+        enable_setting (`str`): the setting for enabling the associated configuration
+            step
         namespace (`str`): the namespace of configuration variables for a given
             configuration
         file_name (`str`): the name of the file where the documentation is stored
         models (`list`): a list of models from which documentation is retrieved
+        required_settings (`list`): required settings for a configuration step
+        optional_settings (`list`): optional settings for a configuration step
         update_field_descriptions (`bool`): if `True`, custom model fields
             (along with their descriptions) are loaded via the settings variable
             `DJANGO_SETUP_CONFIG_CUSTOM_FIELDS`
-        required_settings (`list`): required settings for a configuration step
-        optional_settings (`list`): optional settings for a configuration step
-        detailed_info (`dict`): information for configuration settings which are
+        additional_info (`dict`): information for configuration settings which are
             not associated with a particular model field
+        config_fields (`list`): a list of `ConfigField` objects containing information
+            about Django model fields
 
     Example:
         Given a configuration step `FooConfigurationStep`: ::
 
         FooConfigurationStep(BaseConfigurationStep):
             verbose_name = "Configuration step for Foo"
-            enable_setting = "FOO_CONFIG_ENABLE"
             config_settings = ConfigSettings(
+                enable_setting = "FOO_CONFIG_ENABLE"
                 namespace="FOO",
                 file_name="foo",
                 models=["FooConfigurationModel"],
@@ -57,10 +61,10 @@ class ConfigSettings:
                     "FOO_SOME_OPT_SETTING",
                     "FOO_SOME_OTHER_OPT_SETTING",
                 ],
-                detailed_info={
+                additional_info={
                     "example_non_model_field": {
                         "variable": "FOO_EXAMPLE_NON_MODEL_FIELD",
-                        "description": "Documentation for a field that could not
+                        "description": "Documentation for a field that cannot
                             be retrievend from a model",
                         "possible_values": "string (URL)",
                     },
@@ -68,23 +72,32 @@ class ConfigSettings:
             )
     """
 
-    namespace: str
-    file_name: str
-    models: list[Type[models.Model]] | None
-    required_settings: list[str] = []
-    optional_settings: list[str] = []
-    detailed_info: dict[str, dict[str, str]] | None
-
-    def __init__(self, *args, update_field_descriptions: bool = False, **kwargs):
+    def __init__(
+        self,
+        *args,
+        enable_setting: str,
+        namespace: str,
+        file_name: str | None = None,
+        models: list[Type[models.Model]] | None = None,
+        required_settings: list[str],
+        optional_settings: list[str] | None = None,
+        additional_info: dict[str, dict[str, str]] | None = None,
+        update_field_descriptions: bool = False,
+        **kwargs,
+    ):
+        self.enable_setting = enable_setting
+        self.namespace = namespace
+        self.file_name = file_name or self.namespace.lower()
+        self.models = models
+        self.required_settings = required_settings
+        self.optional_settings = optional_settings or []
+        self.additional_info = additional_info or {}
+        self.update_field_descriptions = update_field_descriptions
         self.config_fields: list[ConfigField] = []
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-        if not getattr(self, "models", None):
+        if not self.models:
             return
 
-        # add support for custom fields like PrivateMediaField
         if update_field_descriptions:
             self.update_field_descriptions()
 
@@ -155,7 +168,7 @@ class ConfigSettings:
         # other fields
         field_type = type(field)
         if field_type in basic_field_descriptions.keys():
-            return basic_field_descriptions.get(field_type)
+            return basic_field_descriptions.get(field_type, "")
 
         return "No information available"
 
@@ -212,16 +225,4 @@ class ConfigSettings:
     # convenience methods/properties for formatting
     #
     def get_config_variable(self, setting: str) -> str:
-        return f"{self.namespace}_" + setting.upper()
-
-    @property
-    def file_name(self) -> str:
-        """
-        Use `self.namespace` in lower case as default file name of the documentation
-        if `file_name` is not provided when instantiating the class
-        """
-        return getattr(self, "_file_name", None) or self.namespace.lower()
-
-    @file_name.setter
-    def file_name(self, val) -> None:
-        self._file_name = val
+        return f"{self.namespace}_{setting.upper()}"

@@ -8,8 +8,6 @@ from .exceptions import PrerequisiteFailed
 
 class BaseConfigurationStep(ABC):
     verbose_name: str
-    required_settings: list[str] = []
-    enable_setting: str = ""
     config_settings: ConfigSettings
 
     def __repr__(self):
@@ -38,10 +36,10 @@ class BaseConfigurationStep(ABC):
 
         By default all steps are enabled
         """
-        if not self.enable_setting:
+        if not self.config_settings.enable_setting:
             return True
 
-        return getattr(settings, self.enable_setting, True)
+        return getattr(settings, self.config_settings.enable_setting, True)
 
     @abstractmethod
     def is_configured(self) -> bool:

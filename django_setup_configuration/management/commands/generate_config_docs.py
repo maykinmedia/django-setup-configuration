@@ -17,13 +17,14 @@ class ConfigDocBase:
     """
 
     @staticmethod
-    def _add_detailed_info(config_settings: ConfigSettings, result: list[str]) -> None:
+    def _add_additional_info(
+        config_settings: ConfigSettings, result: list[str]
+    ) -> None:
         """Convenience/helper function to retrieve additional documentation info"""
 
-        if not (info := getattr(config_settings, "detailed_info", None)):
-            return
+        additional_info = config_settings.additional_info
 
-        for key, value in info.items():
+        for key, value in additional_info.items():
             part = []
             part.append(f"{'Variable':<20}{value['variable']}")
             part.append(
@@ -61,10 +62,10 @@ class ConfigDocBase:
             part.append(f"{'Default value':<20}{field.default_value}")
             ret.append(part)
 
-        self._add_detailed_info(config, ret)
+        self._add_additional_info(config, ret)
 
         for step in related_steps:
-            self._add_detailed_info(step.config_settings, ret)
+            self._add_additional_info(step.config_settings, ret)
 
         return ret
 
@@ -75,7 +76,7 @@ class ConfigDocBase:
         display_name_formatted = f"{heading_bar}\n{display_name}\n{heading_bar}"
         return display_name_formatted
 
-    def render_doc(self, config_settings: ConfigSettings, config_step) -> None:
+    def render_doc(self, config_settings: ConfigSettings, config_step) -> str:
         """
         Render a `ConfigSettings` documentation template with the following variables:
             1. enable_setting
@@ -93,7 +94,8 @@ class ConfigDocBase:
             name for name in getattr(config_settings, "required_settings", [])
         ]
 
-        # additional requirements from related configuration steps
+        # additional requirements from related configuration steps to embed
+        # the documentation of several steps into one
         related_steps = [step for step in getattr(config_step, "related_steps", [])]
         related_requirements_lists = [
             step.config_settings.required_settings for step in related_steps
@@ -156,7 +158,7 @@ class Command(ConfigDocBase, BaseCommand):
 
         return True
 
-    def handle(self, *args, **kwargs) -> str:
+    def handle(self, *args, **kwargs) -> None:
         target_dir = settings.DJANGO_SETUP_CONFIG_DOC_PATH
 
         # create directory for docs if it doesn't exist

@@ -16,11 +16,11 @@ class UserConfigurationStep(BaseConfigurationStep):
     """
 
     verbose_name = "User Configuration"
-    enable_setting = "USER_CONFIGURATION_ENABLED"
     config_settings = ConfigSettings(
-        models=[User],
-        file_name="user",
+        enable_setting="USER_CONFIGURATION_ENABLED",
         namespace="USER_CONFIGURATION",
+        file_name="user",
+        models=[User],
         required_settings=[
             "USER_CONFIGURATION_USERNAME",
             "USER_CONFIGURATION_PASSWORD",
