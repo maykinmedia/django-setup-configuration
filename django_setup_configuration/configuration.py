@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 
 from django.conf import settings
 
+from .config_settings import ConfigSettings
 from .exceptions import PrerequisiteFailed
 
 
 class BaseConfigurationStep(ABC):
     verbose_name: str
-    required_settings: list[str] = []
-    enable_setting: str = ""
+    config_settings: ConfigSettings
 
     def __repr__(self):
         return self.verbose_name
@@ -22,7 +22,7 @@ class BaseConfigurationStep(ABC):
         """
         missing = [
             var
-            for var in self.required_settings
+            for var in self.config_settings.required_settings
             if getattr(settings, var, None) in [None, ""]
         ]
         if missing:
@@ -36,10 +36,10 @@ class BaseConfigurationStep(ABC):
 
         By default all steps are enabled
         """
-        if not self.enable_setting:
+        if not self.config_settings.enable_setting:
             return True
 
-        return getattr(settings, self.enable_setting, True)
+        return getattr(settings, self.config_settings.enable_setting, True)
 
     @abstractmethod
     def is_configured(self) -> bool:

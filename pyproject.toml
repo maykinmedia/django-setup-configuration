@@ -39,6 +39,7 @@ Documentation = "http://django-setup-configuration.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
 tests = [
+    "psycopg2",
     "pytest",
     "pytest-django",
     "pytest-mock",
@@ -47,6 +48,7 @@ tests = [
     "isort",
     "black",
     "flake8",
+    "python-decouple"
 ]
 coverage = [
     "pytest-cov",
@@ -72,6 +74,10 @@ known_first_party="django_setup_configuration"
 sections=["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+DJANGO_SETTINGS_MODULE = "testapp.settings"
+
+[tool.pytest]
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "testapp.settings"
 

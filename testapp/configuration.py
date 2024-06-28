@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
+from django_setup_configuration.config_settings import ConfigSettings
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.exceptions import SelfTestFailed
 
@@ -15,8 +16,23 @@ class UserConfigurationStep(BaseConfigurationStep):
     """
 
     verbose_name = "User Configuration"
-    required_settings = ["USER_CONFIGURATION_USERNAME", "USER_CONFIGURATION_PASSWORD"]
-    enable_setting = "USER_CONFIGURATION_ENABLED"
+    config_settings = ConfigSettings(
+        enable_setting="USER_CONFIGURATION_ENABLED",
+        namespace="USER_CONFIGURATION",
+        file_name="user",
+        models=[User],
+        required_settings=[
+            "USER_CONFIGURATION_USERNAME",
+            "USER_CONFIGURATION_PASSWORD",
+        ],
+        optional_settings=[
+            "USER_CONFIGURATION_EMAIL",
+            "USER_CONFIGURATION_FIRST_NAME",
+            "USER_CONFIGURATION_LAST_NAME",
+            "USER_CONFIGURATION_IS_SUPERUSER",
+            "USER_CONFIGURATION_IS_STAFF",
+        ],
+    )
 
     def is_configured(self) -> bool:
         return User.objects.filter(
