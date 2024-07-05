@@ -1,3 +1,4 @@
+import itertools
 import pathlib
 
 from django.conf import settings
@@ -17,8 +18,16 @@ class ConfigDocBase:
     """
 
     @staticmethod
-    def _add_additional_info(
-        config_settings: ConfigSettings, result: list[str]
+    def extract_unique_settings(settings: list[list[str]]) -> list[str]:
+        """
+        Flatten `settings` (a list of lists with settings) and remove dupes
+        """
+        unique_settings = set(itertools.chain.from_iterable(settings))
+        return list(unique_settings)
+
+    @staticmethod
+    def add_additional_info(
+        config_settings: ConfigSettings, result: list[list[str]]
     ) -> None:
         """Convenience/helper function to retrieve additional documentation info"""
 
@@ -41,9 +50,8 @@ class ConfigDocBase:
 
     def get_detailed_info(
         self,
-        config: ConfigSettings,
-        config_step,
-        related_steps: list,
+        config_settings: ConfigSettings,
+        related_config_settings: list[ConfigSettings],
     ) -> list[list[str]]:
         """
         Get information about the configuration settings:
@@ -52,22 +60,24 @@ class ConfigDocBase:
             3. from information provided manually in the `ConfigSettings` of related
                configuration steps
         """
-        ret = []
-        for field in config.config_fields:
+        result = []
+        for field in config_settings.config_fields:
             part = []
-            part.append(f"{'Variable':<20}{config.get_config_variable(field.name)}")
+            part.append(
+                f"{'Variable':<20}{config_settings.get_config_variable(field.name)}"
+            )
             part.append(f"{'Setting':<20}{field.verbose_name}")
             part.append(f"{'Description':<20}{field.description or 'No description'}")
             part.append(f"{'Possible values':<20}{field.field_description}")
             part.append(f"{'Default value':<20}{field.default_value}")
-            ret.append(part)
+            result.append(part)
 
-        self._add_additional_info(config, ret)
+        self.add_additional_info(config_settings, result)
 
-        for step in related_steps:
-            self._add_additional_info(step.config_settings, ret)
+        for config_settings in related_config_settings:
+            self.add_additional_info(config_settings, result)
 
-        return ret
+        return result
 
     def format_display_name(self, display_name: str) -> str:
         """Surround title with '=' to display as heading in rst file"""
@@ -81,43 +91,47 @@ class ConfigDocBase:
         Render a `ConfigSettings` documentation template with the following variables:
             1. enable_setting
             2. required_settings
-            3. all_settings (required_settings + optional_settings)
+            3. all_settings (required_settings + optional_settings + related settings)
             4. detailed_info
             5. title
             6. link (for crossreference across different files)
         """
         # 1.
-        enable_setting = getattr(config_step, "enable_setting", None)
+        enable_setting = getattr(config_settings, "enable_setting", None)
 
         # 2.
         required_settings = [
             name for name in getattr(config_settings, "required_settings", [])
         ]
 
-        # additional requirements from related configuration steps to embed
+        # additional settings from related configuration steps to embed
         # the documentation of several steps into one
-        related_steps = [step for step in getattr(config_step, "related_steps", [])]
-        related_requirements_lists = [
-            step.config_settings.required_settings for step in related_steps
+        related_config_settings = [
+            config for config in getattr(config_settings, "related_config_settings", [])
         ]
-        related_requirements = set(
-            item for row in related_requirements_lists for item in row
+        required_settings_related = self.extract_unique_settings(
+            [config.required_settings for config in related_config_settings]
+        )
+        optional_settings_related = self.extract_unique_settings(
+            [config.optional_settings for config in related_config_settings]
         )
 
-        required_settings.extend(list(related_requirements))
+        required_settings.extend(required_settings_related)
         required_settings.sort()
 
         # 3.
         all_settings = [
             setting
-            for setting in config_settings.required_settings
+            for setting in required_settings
             + config_settings.optional_settings
+            + optional_settings_related
         ]
         all_settings.sort()
 
         # 4.
         detailed_info = self.get_detailed_info(
-            config_settings, config_step, related_steps
+            config_settings,
+            related_config_settings,
         )
         detailed_info.sort()
 
@@ -167,10 +181,13 @@ class Command(ConfigDocBase, BaseCommand):
         for config_string in settings.SETUP_CONFIGURATION_STEPS:
             config_step = import_string(config_string)
 
-            if config_settings := getattr(config_step, "config_settings", None):
-                doc_path = f"{target_dir}/{config_settings.file_name}.rst"
-                rendered_content = self.render_doc(config_settings, config_step)
+            config_settings = getattr(config_step, "config_settings", None)
+            if not config_settings or not config_settings.independent:
+                continue
 
-                if not self.content_is_up_to_date(rendered_content, doc_path):
-                    with open(doc_path, "w+") as output:
-                        output.write(rendered_content)
+            doc_path = f"{target_dir}/{config_settings.file_name}.rst"
+            rendered_content = self.render_doc(config_settings, config_step)
+
+            if not self.content_is_up_to_date(rendered_content, doc_path):
+                with open(doc_path, "w+") as output:
+                    output.write(rendered_content)

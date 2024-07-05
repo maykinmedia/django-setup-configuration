@@ -59,8 +59,8 @@ attribute on the class:
 
         FooConfigurationStep(BaseConfigurationStep):
             verbose_name = "Configuration step for Foo"
-            enable_setting = "FOO_CONFIG_ENABLE"
             config_settings = ConfigSettings(
+                enable_setting = "FOO_CONFIG_ENABLE"
                 namespace="FOO",
                 file_name="foo",
                 models=["FooConfigurationModel"],
@@ -71,6 +71,10 @@ attribute on the class:
                 optional_settings=[
                     "FOO_SOME_OPT_SETTING",
                     "FOO_SOME_OTHER_OPT_SETTING",
+                ],
+                independent=True,
+                related_config_settings=[
+                    "BarRelatedConfigurationStep.config_settings",
                 ],
                 additional_info={
                     "example_non_model_field": {
@@ -88,6 +92,13 @@ The documentation for settings used to configure Django model fields is pulled f
 text of the relevant fields. You merely have to specify the models used in the configuration
 step and which settings are required/optional. ``additional_info`` is used to manually document
 configuration settings which are not associated with any model field.
+
+In certain cases, you may want to avoid creating a separate documentation file for some
+configuration steps. For example, you may want to include the documentation for API services
+associated with ``FOO`` in the documentation for ``FOO``, instead of having a separate file
+for each. In this case, you set ``independent`` to ``False`` on the ``ConfigSettings`` that you
+want to embed, and include the relevant ``ConfigSettings`` under ``related_config_settings``
+on your main config.
 
 With everything set up, you can generate the docs with the following command:
 

@@ -35,7 +35,12 @@ class ConfigSettings:
         models (`list`): a list of models from which documentation is retrieved
         required_settings (`list`): required settings for a configuration step
         optional_settings (`list`): optional settings for a configuration step
-        update_field_descriptions (`bool`): if `True`, custom model fields
+        independent (`bool`): if `True` (the default), the documentation will be
+            created in its own file; set to `False` if you want to avoid this and
+            plan to embed the docs in another file (see `related_config_settings`)
+        related_config_settings (`list`): optional list of `ConfigSettings` from
+            related configuration steps; used for embedding documentation
+        update_fields (`bool`): if `True`, custom model fields
             (along with their descriptions) are loaded via the settings variable
             `DJANGO_SETUP_CONFIG_CUSTOM_FIELDS`
         additional_info (`dict`): information for configuration settings which are
@@ -61,6 +66,9 @@ class ConfigSettings:
                     "FOO_SOME_OPT_SETTING",
                     "FOO_SOME_OTHER_OPT_SETTING",
                 ],
+                related_config_settings=[
+                    "BarRelatedConfigurationStep.config_settings",
+                ],
                 additional_info={
                     "example_non_model_field": {
                         "variable": "FOO_EXAMPLE_NON_MODEL_FIELD",
@@ -81,8 +89,10 @@ class ConfigSettings:
         models: list[Type[models.Model]] | None = None,
         required_settings: list[str],
         optional_settings: list[str] | None = None,
+        independent: bool = True,
+        related_config_settings: list["ConfigSettings"] | None = None,
         additional_info: dict[str, dict[str, str]] | None = None,
-        update_field_descriptions: bool = False,
+        update_fields: bool = False,
         **kwargs,
     ):
         self.enable_setting = enable_setting
@@ -91,15 +101,17 @@ class ConfigSettings:
         self.models = models
         self.required_settings = required_settings
         self.optional_settings = optional_settings or []
+        self.independent = independent
+        self.related_config_settings = related_config_settings or []
         self.additional_info = additional_info or {}
-        self.update_field_descriptions = update_field_descriptions
+        self.update_fields = update_fields
         self.config_fields: list[ConfigField] = []
 
         if not self.models:
             return
 
-        if update_field_descriptions:
-            self.update_field_descriptions()
+        if update_fields:
+            self.load_additional_fields()
 
         for model in self.models:
             self.create_config_fields(model=model)
@@ -135,7 +147,7 @@ class ConfigSettings:
         return default
 
     @staticmethod
-    def update_field_descriptions() -> None:
+    def load_additional_fields() -> None:
         """
         Add custom fields + descriptions defined in settings to
         `basic_field_descriptions`
