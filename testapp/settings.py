@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve(strict=True).parent
 
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
@@ -9,8 +11,12 @@ USE_TZ = True
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "django_setup_configuration.db",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "postgres",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        # set DB_HOST="" in .env to connect via socket
+        "HOST": config("DB_HOST", "localhost"),
     }
 }
 
@@ -64,3 +70,6 @@ SETUP_CONFIGURATION_STEPS = ["testapp.configuration.UserConfigurationStep"]
 USER_CONFIGURATION_ENABLED = os.getenv("USER_CONFIGURATION_ENABLED", True)
 USER_CONFIGURATION_USERNAME = os.getenv("USER_CONFIGURATION_USERNAME", "demo")
 USER_CONFIGURATION_PASSWORD = os.getenv("USER_CONFIGURATION_PASSWORD", "secret")
+
+DJANGO_SETUP_CONFIG_TEMPLATE = "django_setup_configuration/config_doc.rst"
+DJANGO_SETUP_CONFIG_DOC_PATH = "testapp/docs/configuration"

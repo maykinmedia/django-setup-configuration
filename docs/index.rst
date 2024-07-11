@@ -22,7 +22,13 @@ Features
    :maxdepth: 2
    :caption: Contents:
 
-   quickstart
+   quickstart.rst
+
+   config_docs.rst
+
+`Quickstart <./quickstart.rst>`_
+
+`Configuration docs <./config_docs.rst>`_
 
 
 
