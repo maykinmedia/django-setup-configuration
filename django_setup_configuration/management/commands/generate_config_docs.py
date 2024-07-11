@@ -7,6 +7,7 @@ from django.template import loader
 from django.utils.module_loading import import_string
 
 from ...config_settings import ConfigSettings
+from ...exceptions import DocumentationCheckFailed
 
 
 class ConfigDocBase:
@@ -156,6 +157,17 @@ class ConfigDocBase:
 class Command(ConfigDocBase, BaseCommand):
     help = "Generate documentation for configuration setup steps"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            dest="dry_run",
+            help=(
+                "Check that the docs for the configuration steps are up-to-date "
+                "without creating new ones"
+            ),
+        )
+
     def content_is_up_to_date(self, rendered_content: str, doc_path: str) -> bool:
         """
         Check that documentation at `doc_path` exists and that its content matches
@@ -173,6 +185,7 @@ class Command(ConfigDocBase, BaseCommand):
         return True
 
     def handle(self, *args, **kwargs) -> None:
+        dry_run = kwargs["dry_run"]
         target_dir = settings.DJANGO_SETUP_CONFIG_DOC_PATH
 
         # create directory for docs if it doesn't exist
@@ -187,7 +200,12 @@ class Command(ConfigDocBase, BaseCommand):
 
             doc_path = f"{target_dir}/{config_settings.file_name}.rst"
             rendered_content = self.render_doc(config_settings, config_step)
+            up_to_date = self.content_is_up_to_date(rendered_content, doc_path)
 
-            if not self.content_is_up_to_date(rendered_content, doc_path):
+            if not up_to_date and not dry_run:
                 with open(doc_path, "w+") as output:
                     output.write(rendered_content)
+            elif not up_to_date:
+                raise DocumentationCheckFailed(
+                    f"The documentation for {config_step} is not up-to-date"
+                )

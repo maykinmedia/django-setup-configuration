@@ -30,6 +30,6 @@ class ImproperlyConfigured(ConfigurationException):
 
 class DocumentationCheckFailed(ConfigurationException):
     """
-    Raised when the documentation based on the configuration models
-    is not up to date
+    Raised when the documentation for the configuration steps
+    is not up-to-date
     """
