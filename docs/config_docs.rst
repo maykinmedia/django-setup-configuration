@@ -105,3 +105,10 @@ With everything set up, you can generate the docs with the following command:
 ::
 
     python manage.py generate_config_docs
+
+The command can be run with a ``--dry-run`` option to only check if the docs are up-to-date and
+raise an error if they are not (this could be part of your CI):
+
+::
+
+    python manage.py generate_config_docs --dry-run
