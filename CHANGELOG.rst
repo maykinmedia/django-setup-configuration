@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.3.0 (2024-07-15)
+==================
+
+* added option ``--dry-run`` for ``generate_config_docs`` management command to check that docs are
+  up-to-date without creating them.
+
 0.2.0 (2024-07-11)
 ==================
 
