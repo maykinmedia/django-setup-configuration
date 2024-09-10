@@ -34,12 +34,12 @@ class BaseConfigurationStep(ABC):
         """
         Hook to switch on and off the configuration step from env vars
 
-        By default all steps are enabled
+        By default all steps are disabled
         """
         if not self.config_settings.enable_setting:
             return True
 
-        return getattr(settings, self.config_settings.enable_setting, True)
+        return getattr(settings, self.config_settings.enable_setting, False)
 
     @abstractmethod
     def is_configured(self) -> bool:
