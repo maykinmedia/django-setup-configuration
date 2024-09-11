@@ -39,7 +39,7 @@ class BaseConfigurationStep(ABC):
         if not self.config_settings.enable_setting:
             return True
 
-        return getattr(settings, self.config_settings.enable_setting, False)
+        return getattr(settings, self.config_settings.enable_setting, False) or False
 
     @abstractmethod
     def is_configured(self) -> bool:
