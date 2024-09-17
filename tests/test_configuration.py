@@ -20,6 +20,15 @@ def test_configuration_disabled(settings):
     assert UserConfigurationStep().is_enabled() is False
 
 
+def test_configuration_disabled_by_default(settings):
+    """
+    test that configuration is enabled when the related setting isn't set
+    """
+    settings.USER_CONFIGURATION_ENABLED = None
+
+    assert UserConfigurationStep().is_enabled() is False
+
+
 def test_prerequisites_valid():
     """
     test that no error is raised when necessary settings are provided
