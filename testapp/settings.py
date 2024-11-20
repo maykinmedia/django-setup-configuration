@@ -1,7 +1,4 @@
-import os
 from pathlib import Path
-
-from decouple import config
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent
 
@@ -11,12 +8,8 @@ USE_TZ = True
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        # set DB_HOST="" in .env to connect via socket
-        "HOST": config("DB_HOST", "localhost"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
     }
 }
 
@@ -62,14 +55,3 @@ ROOT_URLCONF = "testapp.urls"
 # django-setup-configuration settings
 #
 SETUP_CONFIGURATION_STEPS = ["testapp.configuration.UserConfigurationStep"]
-
-
-#
-# testapp settings
-#
-USER_CONFIGURATION_ENABLED = os.getenv("USER_CONFIGURATION_ENABLED", True)
-USER_CONFIGURATION_USERNAME = os.getenv("USER_CONFIGURATION_USERNAME", "demo")
-USER_CONFIGURATION_PASSWORD = os.getenv("USER_CONFIGURATION_PASSWORD", "secret")
-
-DJANGO_SETUP_CONFIG_TEMPLATE = "django_setup_configuration/config_doc.rst"
-DJANGO_SETUP_CONFIG_DOC_PATH = "testapp/docs/configuration"

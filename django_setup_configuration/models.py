@@ -1,12 +1,13 @@
 from typing import Any
 
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from django_setup_configuration.fields import (
     UNMAPPED_DJANGO_FIELD,
     DjangoModelRef,
     DjangoModelRefInfo,
+    get_model_from_ref,
 )
 
 
@@ -36,7 +37,9 @@ class DjangoRefsMetaclass(BaseModel.__class__):  # type: ignore
 
                 for model_cls, fields in django_model_refs.items():
                     for field in fields:
-                        namespace[field] = DjangoModelRef(model_cls, field)
+                        namespace[field] = DjangoModelRef(
+                            get_model_from_ref(model_cls), field
+                        )
 
         for key, value in namespace.items():
             if isinstance(value, DjangoModelRefInfo):
@@ -60,4 +63,4 @@ class ConfigurationModel(BaseSettings, metaclass=DjangoRefsMetaclass):
     A base for defining configuration settings to be used in a BaseConfigurationStep.
     """
 
-    pass
+    model_config = SettingsConfigDict(extra="forbid")
