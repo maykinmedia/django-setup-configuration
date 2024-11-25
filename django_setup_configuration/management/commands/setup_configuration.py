@@ -1,10 +1,10 @@
-from django.conf import settings
+from pathlib import Path
+
 from django.core.management import BaseCommand, CommandError
 from django.db import transaction
-from django.utils.module_loading import import_string
 
-from ...configuration import BaseConfigurationStep
-from ...exceptions import ConfigurationRunFailed, PrerequisiteFailed, SelfTestFailed
+from django_setup_configuration.exceptions import ValidateRequirementsFailure
+from django_setup_configuration.runner import SetupConfigurationRunner
 
 
 class ErrorDict(dict):
@@ -27,89 +27,72 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--overwrite",
-            action="store_true",
-            help=(
-                "Overwrite the existing configuration. Should be used if some "
-                "of the env variables have been changed."
-            ),
-        )
-        parser.add_argument(
-            "--no-selftest",
-            action="store_true",
-            dest="skip_selftest",
-            help=(
-                "Skip checking if configuration is successful. Use it if you "
-                "run this command in the init container before the web app is started"
-            ),
+            "--yaml-file",
+            type=str,
+            required=True,
+            help="Path to YAML file containing the configurations",
         )
 
     @transaction.atomic
     def handle(self, **options):
-        overwrite: bool = options["overwrite"]
-        skip_selftest: bool = options["skip_selftest"]
+        yaml_file = Path(options["yaml_file"]).resolve()
+        if not yaml_file.exists():
+            raise CommandError(f"Yaml file `{yaml_file}` does not exist.")
 
-        errors = ErrorDict()
-        steps: list[BaseConfigurationStep] = [
-            import_string(path)() for path in settings.SETUP_CONFIGURATION_STEPS
-        ]
-        enabled_steps = [step for step in steps if step.is_enabled()]
+        self.stdout.write(f"Loading config settings from {yaml_file}")
 
-        if not enabled_steps:
-            self.stdout.write(
-                "There are no enabled configuration steps. "
-                "Configuration can't be set up"
-            )
-            return
+        try:
+            runner = SetupConfigurationRunner(yaml_source=options["yaml_file"])
+        except Exception as exc:
+            raise CommandError(str(exc))
+
+        if not runner.configured_steps:
+            raise CommandError("No steps configured, aborting.")
 
         self.stdout.write(
-            f"Configuration will be set up with following steps: {enabled_steps}"
+            "The following steps are configured:\n%s"
+            % "\n".join(str(step) for step in runner.configured_steps),
         )
 
+        if not runner.enabled_steps:
+            raise CommandError("No steps enabled, aborting.")
+
+        errors = ErrorDict()
         # 1. Check prerequisites of all steps
-        for step in enabled_steps:
-            try:
-                step.validate_requirements()
-            except PrerequisiteFailed as exc:
-                errors[step] = exc
+        try:
+            runner.validate_all_requirements()
+        except ValidateRequirementsFailure as exc_group:
+            for exc in exc_group.exceptions:
+                self.stderr.write(
+                    f"Unable to satisfy prerequisites for step:"
+                    f" {exc.step.verbose_name}:"
+                )
+                errors[exc.step] = str(exc)
 
         if errors:
             raise CommandError(
                 f"Prerequisites for configuration are not fulfilled: {errors.as_text()}"
             )
 
+        self.stdout.write("Executing steps...")
+
         # 2. Configure steps
-        configured_steps = []
-        for step in enabled_steps:
-            if not overwrite and step.is_configured():
+        for result in runner.execute_all_iter():
+            if not result.is_enabled:
                 self.stdout.write(
-                    f"Step {step} is skipped, because the configuration already exists."
+                    self.style.NOTICE(
+                        f"Skipping step '{result.step}' because it is not enabled"
+                    )
                 )
                 continue
-            else:
-                self.stdout.write(f"Configuring {step}...")
-                try:
-                    step.configure()
-                except ConfigurationRunFailed as exc:
-                    raise CommandError(f"Could not configure step {step}") from exc
-                else:
-                    self.stdout.write(f"{step} is successfully configured")
-                    configured_steps.append(step)
 
-        # 3. Test configuration
-        if skip_selftest:
-            self.stdout.write("Selftest is skipped.")
-
-        else:
-            for step in configured_steps:
-                try:
-                    step.test_configuration()
-                except SelfTestFailed as exc:
-                    errors[step] = exc
-
-            if errors:
+            if exc := result.run_exception:
                 raise CommandError(
-                    f"Configuration test failed with errors: {errors.as_text()}"
+                    f"Error while executing step `{result.step}`: {str(exc)}"
+                )
+            else:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Successfully executed step: {result.step}")
                 )
 
         self.stdout.write(self.style.SUCCESS("Instance configuration completed."))

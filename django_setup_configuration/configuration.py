@@ -1,69 +1,67 @@
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
 
-from django.conf import settings
+from django_setup_configuration.exceptions import ConfigurationException
+from django_setup_configuration.models import ConfigurationModel
 
-from .config_settings import ConfigSettings
-from .exceptions import PrerequisiteFailed
+TConfigModel = TypeVar("TConfigModel", bound=ConfigurationModel)
 
 
-class BaseConfigurationStep(ABC):
+class BaseConfigurationStep(ABC, Generic[TConfigModel]):
+    """
+    A single configuration step to configure some part of the Django application.
+
+    Attributes:
+        enable_setting (`str`): the setting for enabling the associated configuration
+            step
+        config_model (`ConfigurationModel`): a list of `ConfigField` objects containing
+            information about Django model fields
+        namespace (`str`): the namespace of configuration variables for a given
+            configuration
+
+    Example:
+        ```python
+        class FooConfiguration(ConfigurationModel):
+            some_setting: str
+
+        class FooConfigurationStep(BaseConfigurationStep):
+            verbose_name = "Configuration step for Foo"
+            enable_setting = "foo_config_enable"
+            namespace="foo"
+
+        @abstractmethod
+        def execute(self, model) -> None:
+            SomeModel.objects.create(foo=model.some_setting)
+
+        ```
+    """
+
     verbose_name: str
-    config_settings: ConfigSettings
+    config_model: type[TConfigModel]
+    namespace: str
+    enable_setting: str
+
+    def __init__(self):
+        for attr in (
+            "verbose_name",
+            "config_model",
+            "namespace",
+            "enable_setting",
+        ):
+            if not getattr(self, attr, None):
+                raise ConfigurationException(
+                    f"You must set {self.__class__.__name__}.{attr}"
+                )
 
     def __repr__(self):
         return self.verbose_name
 
-    def validate_requirements(self) -> None:
-        """
-        check prerequisites of the configuration
-
-        :raises: :class: `django_setup_configuration.exceptions.PrerequisiteFailed`
-        if prerequisites are missing
-        """
-        missing = [
-            var
-            for var in self.config_settings.required_settings
-            if getattr(settings, var, None) in [None, ""]
-        ]
-        if missing:
-            raise PrerequisiteFailed(
-                f"{', '.join(missing)} settings should be provided"
-            )
-
-    def is_enabled(self) -> bool:
-        """
-        Hook to switch on and off the configuration step from env vars
-
-        By default all steps are disabled
-        """
-        if not self.config_settings.enable_setting:
-            return True
-
-        return getattr(settings, self.config_settings.enable_setting, False) or False
-
     @abstractmethod
-    def is_configured(self) -> bool:
-        """
-        Check that the configuration is already done with current env variables
-        """
-        ...
-
-    @abstractmethod
-    def configure(self) -> None:
+    def execute(self, model: TConfigModel) -> None:
         """
         Run the configuration step.
 
         :raises: :class: `django_setup_configuration.exceptions.ConfigurationRunFailed`
         if the configuration has an error
-        """
-        ...
-
-    @abstractmethod
-    def test_configuration(self) -> None:
-        """
-        Test that the configuration works as expected
-
-        :raises: :class:`openzaak.config.bootstrap.exceptions.SelfTestFailure`
-        if the configuration aspect was found to be faulty.
         """
         ...
