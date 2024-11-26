@@ -30,6 +30,13 @@ def test_runner_raises_on_passing_invalid_step_class(test_step_yaml_path):
         )
 
 
+def test_runner_raises_on_non_existent_yaml_path():
+    with pytest.raises(ConfigurationException):
+        SetupConfigurationRunner(
+            steps=[TestStep], yaml_source="/does/not/exist/anywhere"
+        )
+
+
 def test_validate_requirements_for_step_fails_on_bad_yaml(
     runner_with_invalid_yaml, step_execute_mock, test_step_bad_yaml_path
 ):
