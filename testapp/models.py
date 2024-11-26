@@ -1,6 +1,11 @@
 from django.db import models
 
 
+class StrChoices(models.TextChoices):
+    foo = "foo", "Foo"
+    bar = "bar", "Bar"
+
+
 class TestModel(models.Model):
     required_int = models.IntegerField()
     int_with_default = models.IntegerField(default=42)
@@ -13,3 +18,8 @@ class TestModel(models.Model):
     field_with_verbose_name = models.IntegerField(verbose_name="The Verbose Name")
 
     foreign_key = models.ForeignKey("auth.User", on_delete=models.DO_NOTHING)
+
+    str_with_choices_and_default = models.CharField(
+        max_length=3, choices=StrChoices.choices, default=StrChoices.bar
+    )
+    int_with_choices = models.IntegerField(choices=((1, "FOO"), (8, "BAR")))

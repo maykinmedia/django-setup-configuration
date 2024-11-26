@@ -1,9 +1,11 @@
+from typing import Literal
+
 import pytest
 from pydantic.fields import PydanticUndefined
 
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
-from testapp.models import TestModel
+from testapp.models import StrChoices, TestModel
 
 
 def test_meta_spec_is_equivalent_to_inline_fields():
@@ -161,6 +163,50 @@ def test_unmapped_type_does_not_raise_if_annotation_is_overridden():
     field = Config.model_fields["foreign_key"]
 
     assert field.title == "foreign key"
+    assert field.description is None
+    assert field.annotation == bool
+    assert field.default == PydanticUndefined
+    assert field.is_required() is True
+
+
+def test_str_with_choices_has_literal_annotation():
+
+    class Config(ConfigurationModel):
+        str_with_choices_and_default = DjangoModelRef(
+            TestModel, "str_with_choices_and_default"
+        )
+
+    field = Config.model_fields["str_with_choices_and_default"]
+
+    assert field.title == "str with choices and default"
+    assert field.description is None
+    assert field.annotation == Literal["foo", "bar"]
+    assert field.default == StrChoices.bar
+    assert field.is_required() is False
+
+
+def test_int_with_choices_has_literal_annotation():
+
+    class Config(ConfigurationModel):
+        int_with_choices = DjangoModelRef(TestModel, "int_with_choices")
+
+    field = Config.model_fields["int_with_choices"]
+
+    assert field.title == "int with choices"
+    assert field.description is None
+    assert field.annotation == Literal[1, 8]
+    assert field.default == PydanticUndefined
+    assert field.is_required() is True
+
+
+def test_int_with_choices_and_override_has_overridden_annotation():
+
+    class Config(ConfigurationModel):
+        int_with_choices: bool = DjangoModelRef(TestModel, "int_with_choices")
+
+    field = Config.model_fields["int_with_choices"]
+
+    assert field.title == "int with choices"
     assert field.description is None
     assert field.annotation == bool
     assert field.default == PydanticUndefined

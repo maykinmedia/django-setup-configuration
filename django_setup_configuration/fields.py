@@ -1,6 +1,6 @@
 import datetime
 import decimal
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
 from django.apps import apps as django_apps
 from django.core.exceptions import FieldDoesNotExist
@@ -119,6 +119,10 @@ class DjangoModelRefInfo(FieldInfo):
         django_field: Field,
     ):
         """Map Django field types to Python types."""
+        if choices := getattr(django_field, "choices"):
+            choice_values = tuple(choice[0] for choice in choices)
+            return Literal[choice_values]
+
         mapping: Mapping[
             type[Field],
             type[
