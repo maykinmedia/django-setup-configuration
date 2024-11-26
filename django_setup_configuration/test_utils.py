@@ -59,4 +59,8 @@ def execute_single_step(
         yaml_source=yaml_source,
         object_source=object_source,
     )
-    return runner._execute_step(runner.configured_steps[0])
+    result = runner._execute_step(runner.configured_steps[0])
+    if result.run_exception:
+        raise result.run_exception
+
+    return result
