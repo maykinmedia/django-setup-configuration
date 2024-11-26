@@ -91,11 +91,12 @@ def test_execute_all_returns_correct_results(
 
 def test_exception_during_execute_step_is_included_in_result(
     step_execute_mock,
-    test_step_yaml_path,
     expected_step_config,
+    runner,
 ):
     step_execute_mock.side_effect = Exception()
-    result = execute_single_step(TestStep, yaml_source=test_step_yaml_path)
+    (step,) = runner.configured_steps
+    result = runner._execute_step(step)
 
     assert result == StepExecutionResult(
         step=result.step,
