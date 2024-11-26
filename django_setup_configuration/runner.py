@@ -2,6 +2,7 @@ import inspect
 import logging
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any, Generator
 
 from django.conf import settings
@@ -66,6 +67,13 @@ class SetupConfigurationRunner:
             raise ConfigurationException(f"Unable to import step {exc.name}")
 
         self.yaml_source = yaml_source
+        if self.yaml_source:
+            yaml_file = Path(yaml_source).resolve()
+            if not yaml_file.exists():
+                raise ConfigurationException(
+                    f"YAML source is not an existing file path: {yaml_file}"
+                )
+
         self._config_source_models_for_step = {}
         self._config_for_step = {}
         for step in self.configured_steps:
