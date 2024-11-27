@@ -77,6 +77,34 @@ def test_default_is_taken_from_field():
     assert field.is_required() is False
 
 
+def test_explicit_default_overrides_model_field_default():
+
+    class Config(ConfigurationModel):
+        int_with_default = DjangoModelRef(TestModel, "int_with_default")
+        int_with_overridden_default = DjangoModelRef(
+            TestModel, "int_with_default", default=1874
+        )
+
+    int_with_default_field = Config.model_fields["int_with_default"]
+    int_with_overridden_default_field = Config.model_fields[
+        "int_with_overridden_default"
+    ]
+
+    assert int_with_default_field.default == 42
+    assert int_with_overridden_default_field.default == 1874
+
+    assert (
+        int_with_default_field.annotation
+        == int_with_overridden_default_field.annotation
+        == int
+    )
+    assert (
+        int_with_default_field.is_required()
+        is int_with_overridden_default_field.is_required()
+        is False
+    )
+
+
 def test_null_is_true_sets_default_to_none():
 
     class Config(ConfigurationModel):
@@ -89,6 +117,21 @@ def test_null_is_true_sets_default_to_none():
     assert field.description is None
     assert field.annotation == int | None
     assert field.default is None
+    assert field.is_required() is False
+
+
+def test_null_prefers_explicit_default():
+
+    class Config(ConfigurationModel):
+        class Meta:
+            django_model_refs = {TestModel: ["nullable_int_with_default"]}
+
+    field = Config.model_fields["nullable_int_with_default"]
+
+    assert field.title == "nullable int with default"
+    assert field.description is None
+    assert field.annotation == int
+    assert field.default == 42
     assert field.is_required() is False
 
 
@@ -107,7 +150,7 @@ def test_null_is_true_sets_default_to_none_for_str_fields():
     assert field.is_required() is False
 
 
-def test_blank_is_true_null_is_false_sets_default_to_none_for_str_fields():
+def test_blank_is_true_null_is_false_sets_default_to_empty_str_for_str_fields():
     class Config(ConfigurationModel):
         class Meta:
             django_model_refs = {TestModel: ["blank_str"]}
