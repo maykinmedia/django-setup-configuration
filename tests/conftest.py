@@ -93,10 +93,11 @@ def test_step_bad_yaml_path(yaml_file_factory):
 
 
 @pytest.fixture()
-def test_step_disabled_yaml_path(yaml_file_factory):
+def test_step_disabled_yaml_path(yaml_file_factory, test_step_valid_config):
     return yaml_file_factory(
         {
             "test_step_is_enabled": False,
+            "test_step": test_step_valid_config["test_step"],
         }
     )
 

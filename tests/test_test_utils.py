@@ -36,3 +36,25 @@ def test_execute_single_step_returns_result_if_no_exceptions(
     assert isinstance(result.step, TestStep)
 
     step_execute_mock.assert_called_once_with(expected_step_config)
+
+
+def test_execute_single_step_ignores_enabled_setting(
+    step_execute_mock,
+    test_step_yaml_path,
+    expected_step_config,
+):
+    result = execute_single_step(
+        TestStep,
+        yaml_source=test_step_yaml_path,
+        object_source={"test_step_is_enabled": False},
+    )
+
+    assert result == StepExecutionResult(
+        step=result.step,
+        is_enabled=False,
+        has_run=True,
+        run_exception=None,
+        config_model=expected_step_config,
+    )
+    assert isinstance(result.step, TestStep)
+    step_execute_mock.assert_called_once_with(expected_step_config)
