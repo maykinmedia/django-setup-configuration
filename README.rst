@@ -305,6 +305,9 @@ Using Test Helpers
 
         # Add assertions
 
+Note that when using ``execute_single_step``, the enabled flag in your setting source
+will be ignored and the step will be executed regardless of its presence or value.
+
 Best Practices
 ==============
 

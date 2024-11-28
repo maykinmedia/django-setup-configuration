@@ -36,6 +36,7 @@ def build_step_config_from_sources(
 
 def execute_single_step(
     step: type[BaseConfigurationStep] | str,
+    *,
     yaml_source: str | None = None,
     object_source: dict | None = None,
 ) -> StepExecutionResult:
@@ -59,7 +60,7 @@ def execute_single_step(
         yaml_source=yaml_source,
         object_source=object_source,
     )
-    result = runner._execute_step(runner.configured_steps[0])
+    result = runner._execute_step(runner.configured_steps[0], ignore_enabled=True)
     if result.run_exception:
         raise result.run_exception
 

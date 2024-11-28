@@ -127,8 +127,7 @@ class SetupConfigurationRunner:
         return getattr(model_settings_instance, step.namespace)
 
     def _execute_step(
-        self,
-        step: BaseConfigurationStep,
+        self, step: BaseConfigurationStep, *, ignore_enabled: bool = False
     ):
         if step not in self.configured_steps:
             raise ConfigurationRunFailed(
@@ -140,8 +139,9 @@ class SetupConfigurationRunner:
             step=step,
             config_model=None,
             is_enabled=False,
+            has_run=False,
         )
-        if not (is_enabled := step in self.enabled_steps):
+        if not (is_enabled := step in self.enabled_steps) and not ignore_enabled:
             return result_factory()
 
         result_factory = partial(result_factory, is_enabled=True)

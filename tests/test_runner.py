@@ -121,7 +121,6 @@ def test_exception_during_execute_all_is_included_in_result(
     runner,
     step_execute_mock,
     expected_step_config,
-    runner_step,
 ):
     step_execute_mock.side_effect = Exception()
     results = runner.execute_all()
@@ -146,7 +145,7 @@ def test_disabled_steps_are_not_run(
     (step,) = runner_with_step_disabled_yaml.configured_steps
     result = runner_with_step_disabled_yaml._execute_step(step)
 
-    assert not result.is_enabled
+    assert result.is_enabled is False
     assert result == StepExecutionResult(
         step=result.step,
         is_enabled=False,
@@ -158,7 +157,29 @@ def test_disabled_steps_are_not_run(
     step_execute_mock.assert_not_called()
 
 
-def test_settings_can_be_overriden(test_step_yaml_path, test_step_valid_config):
+def test_disabled_steps_are_run_if_override_flag_is_provided(
+    runner_with_step_disabled_yaml,
+    step_execute_mock,
+    expected_step_config,
+):
+    (step,) = runner_with_step_disabled_yaml.configured_steps
+    result = runner_with_step_disabled_yaml._execute_step(step, ignore_enabled=True)
+
+    assert result.is_enabled is False
+    assert result == StepExecutionResult(
+        step=result.step,
+        is_enabled=False,
+        has_run=True,
+        run_exception=None,
+        config_model=expected_step_config,
+    )
+    assert type(result.step) is TestStep
+    step_execute_mock.assert_called_once_with(expected_step_config)
+
+
+def test_settings_can_be_overriden_with_object(
+    test_step_yaml_path, test_step_valid_config
+):
     runner = SetupConfigurationRunner(
         steps=[TestStep],
         yaml_source=test_step_yaml_path,
