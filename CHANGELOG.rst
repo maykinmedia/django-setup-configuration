@@ -2,6 +2,18 @@
 Changelog
 =========
 
+0.4.0 (2024-11-28)
+==================
+
+💥 **NOTE**: This release contains a number of significantly breaking changes. 💥
+
+* The core API of the configuration steps has been changed to rely on Pydantic-based
+  configuration models, and to rely solely on an ``execute`` hook, with ``is_configured``
+  and ``test_results`` being deprecated. Details of the new API can be found in the
+  README.
+* The ``generate_config_docs`` command has been disabled until it can amended to work
+  with the new API, which is planned for an upcoming release.
+
 0.3.0 (2024-07-15)
 ==================
 
