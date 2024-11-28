@@ -63,11 +63,9 @@ Key Concepts
 - **Configuration Model**: A `Pydantic <https://docs.pydantic.dev/>`_ model defining the structure and validation rules for your configuration.
 - **Configuration Step**: A class that implements the actual configuration logic using the validated configuration model.
 
-Getting Started
----------------
 
 Define a Configuration Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------
 
 .. code-block:: python
 
@@ -75,7 +73,7 @@ Define a Configuration Model
     from django_setup_configuration import ConfigurationModel, DjangoModelRef
 
     class UserConfigurationModel(ConfigurationModel):
-        # Use Pydantic's validation features
+        # A regular Pydantic field
         add_to_groups: list[str] = Field(
             default_factory=list,
             description="Groups to add the user to"
@@ -95,8 +93,58 @@ Define a Configuration Model
                 User: ["password"]
             }
 
+
+Field Defaults
+^^^^^^^^^^^^^^
+
+For regular Pydantic fields, you must explicitly configure defaults using  `Field
+(default=...)` or `Field(default_factory=lambda: ...)` as specified in  the  `Pydantic
+documentation <https://docs.pydantic.dev/2.10/concepts/fields/#default-values>`_.
+
+**NOTE:** Marking a field as ``Optional`` or using ``... | None`` does *not* automatically 
+set the field's default to `None`. You must set this explicitly if you want the field to
+be optional:
+
+.. code-block:: python
+
+    from pydantic import Field
+
+    class ConfigModel(ConfigurationModel):
+        optional_field: int | None = DjangoModelRef(SomeModel, "some_field", default=None)
+
+For ``DjangoModelRef``, the default value handling follows these rules:
+
+You can provide explicit defaults using the ``default`` or ``default_factory`` kwargs,
+similar to regular Pydantic fields:
+
+.. code-block:: python
+
+    class ConfigModel(ConfigurationModel):
+        # Explicit string default
+        field_with_explicit_default = DjangoModelRef(SomeModel, "some_field", default="foobar")
+        
+        # Explicit default factory for a list
+        field_with_explicit_default_factory: list[str] = DjangoModelRef(
+            SomeModel, "some_other_field", default_factory=list
+        )
+
+When no explicit default is provided, the default is derived from the referenced Django field:
+
+1. If the Django field has an explicit default, that default will be used.
+
+2. If no explicit default is set but the field has ``null=True`` set:
+        
+        a. The default will be set to ``None``
+        b. The field will be optional
+
+3. If no explicit default is provided and the field is not nullable, but has ``blank=True`` **and** it is a string-type field:
+
+        a. The default will be an empty string
+        b. The field will be optional
+
+
 Create a Configuration Step
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 .. code-block:: python
 
@@ -130,8 +178,8 @@ Create a Configuration Step
                 group = Group.objects.get(name=group_name)
                 group.user_set.add(user)
 
-Configuration File
-^^^^^^^^^^^^^^^^^^
+Configuration Source
+--------------------
 
 Create a YAML configuration file with your settings:
 
@@ -155,7 +203,7 @@ keys are exclusively used for the steps' ``enable_setting`` key, and the ``names
 key which encapsulates the configuration model's attributes.
 
 Step Registration
-^^^^^^^^^^^^^^^^^
+-----------------
 
 Register your configuration steps in Django settings:
 
@@ -258,7 +306,7 @@ Using Test Helpers
         # Add assertions
 
 Best Practices
---------------
+==============
 
 - **Idempotency**: Design steps that can be run multiple times without unintended side effects.
 - **Validation**: You can use the full range of Pydantic's validation capabilities.
