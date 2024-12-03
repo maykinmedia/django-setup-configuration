@@ -192,3 +192,25 @@ def test_extra_args_at_config_model_level_raises(
             }
         ],
     )
+
+
+def test_environment_source_is_not_used(monkeypatch, valid_configuration_obj):
+    # The deleted key is located in the environment, but should not be picked up
+    del valid_configuration_obj["the_namespace"]["foo"]
+    monkeypatch.setenv("THE_NAMESPACE__FOO", "an env string")
+
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        ConfigModel,
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        SettingsModel(**valid_configuration_obj)
+
+    assert [(e["type"], e["loc"]) for e in excinfo.value.errors()] == [
+        (
+            "missing",
+            ("the_namespace", "foo"),
+        )
+    ]

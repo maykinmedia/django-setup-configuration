@@ -51,13 +51,6 @@ def create_config_source_models(
         """A Pydantic model that pulls its data from an external source."""
 
         model_config = SettingsConfigDict(
-            # The convention is that a step's settings are located under a key
-            # that matches the step's `namespace`, thus we don't need an
-            # additional prefix in the env vars, as these will already be
-            # prefixed with `namespace__`.
-            env_prefix="",
-            # Follow the well-known (Django) convention here
-            env_nested_delimiter="__",
             # We assume our sources can have info for multiple steps combined
             extra="ignore",
         )
