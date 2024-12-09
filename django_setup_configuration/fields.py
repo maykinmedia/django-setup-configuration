@@ -92,21 +92,32 @@ class DjangoModelRefInfo(FieldInfo):
                     field_info_creation_kwargs["default_factory"] = django_default
                 else:
                     inferred_default = django_default
-            else:
-                # If nullable, mark the field is optional with a default of None
-                if self.django_field.null:
-                    inferred_default = None
-                    self.python_type = self.python_type | None
 
-                # For strings that can have blank=True and null=False (the
-                # recommended approach), set an empty string as the default
-                if (
-                    self.django_field.blank
-                    and not self.django_field.null
-                    and self.python_type == str
-                ):
-                    inferred_default = ""
-                    self.python_type = self.python_type | None
+        # If nullable, mark the field is optional with a default of None...
+        if self.django_field.null:
+            self.python_type = self.python_type | None
+            if inferred_default is NOT_PROVIDED:
+                inferred_default = None
+
+        # ... otherwise, if blank, amend type to allow for the field's
+        # defined default value. This is mostly to handle the case
+        # where blank=True is set together with choices=... but without a
+        # default. In that case, the default empty value should be part of the
+        # annotation, because the base type will be a literal that might not
+        # include the default value as an option (think using an empty
+        # string to represent the absence of a text choice).
+        elif self.django_field.blank:
+            inferred_default = (
+                self.django_field.get_default()
+                if inferred_default is NOT_PROVIDED
+                else inferred_default
+            )
+            default_type = (
+                inferred_default
+                if inferred_default in (None, True, False)
+                else Literal[inferred_default]
+            )
+            self.python_type = self.python_type | default_type
 
         field_info_creation_kwargs["annotation"] = self.python_type
         if inferred_default is not NOT_PROVIDED:
