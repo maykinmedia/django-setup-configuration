@@ -87,11 +87,8 @@ class DjangoModelRefInfo(FieldInfo):
             inferred_default = default
         else:
             if (django_default := self.django_field.default) is not NOT_PROVIDED:
-                # ...otherwise, use the Django field's default (callable or value)
-                if callable(django_default):
-                    field_info_creation_kwargs["default_factory"] = django_default
-                else:
-                    inferred_default = django_default
+                # ...otherwise, use the Django field's default
+                inferred_default = django_default
 
         # If nullable, mark the field is optional with a default of None...
         if self.django_field.null:
@@ -121,7 +118,10 @@ class DjangoModelRefInfo(FieldInfo):
 
         field_info_creation_kwargs["annotation"] = self.python_type
         if inferred_default is not NOT_PROVIDED:
-            field_info_creation_kwargs["default"] = inferred_default
+            if callable(inferred_default):
+                field_info_creation_kwargs["default_factory"] = inferred_default
+            else:
+                field_info_creation_kwargs["default"] = inferred_default
 
         return super().__init__(**field_info_creation_kwargs)
 
