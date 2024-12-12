@@ -14,6 +14,7 @@ class TestModel(models.Model):
     nullable_str = models.CharField(null=True, blank=False, max_length=1)
     nullable_and_blank_str = models.CharField(null=True, blank=False, max_length=1)
     blank_str = models.CharField(null=False, blank=True, max_length=1)
+    slug = models.SlugField()
 
     field_with_help_text = models.IntegerField(help_text="This is the help text")
     field_with_verbose_name = models.IntegerField(verbose_name="The Verbose Name")

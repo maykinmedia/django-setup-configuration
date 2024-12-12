@@ -7,6 +7,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED, Field
 
+from pydantic import constr
 from pydantic.fields import FieldInfo
 
 
@@ -45,6 +46,9 @@ def get_model_from_ref(ref: str | type[models.Model]) -> type[models.Model]:
 
 class UNMAPPED_DJANGO_FIELD:
     pass
+
+
+_SLUG_RE = r"^[-a-zA-Z0-9_]+\z"
 
 
 class DjangoModelRefInfo(FieldInfo):
@@ -142,8 +146,8 @@ class DjangoModelRefInfo(FieldInfo):
             models.TextField: str,
             models.EmailField: str,
             models.URLField: str,
-            models.SlugField: str,
             models.UUIDField: str,
+            models.SlugField: constr(pattern=_SLUG_RE),
             # Integer-based fields
             models.AutoField: int,
             models.SmallAutoField: int,
