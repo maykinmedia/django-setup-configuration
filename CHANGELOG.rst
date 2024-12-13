@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.5.0 (2024-12-13)
+==================
+
+* Fixed an issue (#27) whereby empty strings would not be part of the string literal
+  inferred from a string-based field's ``options`` when using a Django field ref.
+* Added a generic configuration step for the Django sites module.
+* Slug fields are now explicitly validated in Django field refs.
+
 0.4.0 (2024-11-28)
 ==================
 

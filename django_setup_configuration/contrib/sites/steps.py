@@ -1,6 +1,6 @@
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.contrib.sites.models import SitesConfigurationModel
@@ -14,7 +14,6 @@ class SitesConfigurationStep(BaseConfigurationStep):
     namespace = "sites_config"
     enable_setting = "sites_config_enable"
 
-    @transaction.atomic()
     def execute(self, model: SitesConfigurationModel) -> None:
         if not model.items:
             raise ConfigurationRunFailed("Please specify one or more sites")
