@@ -13,17 +13,9 @@ To make use of this, add the step to your ``SETUP_CONFIGURATION_STEPS``:
         ...
     ]
 
-Create or update your YAML configuration file with your settings:
+Create or update your YAML configuration file with syour settings:
 
-.. code-block:: yaml
-
-    sites_config_enable: true
-    sites_config:
-      items:
-      - domain: example.com
-        name: Example site
-      - domain: test.example.com
-        name: Test site
+.. pydantic-model-example:: django_setup_configuration.contrib.sites.steps.SitesConfigurationStep
 
 .. note::
     The first item in the list will be used to update the current ``Site`` instance,
