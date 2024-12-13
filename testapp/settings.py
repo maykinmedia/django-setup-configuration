@@ -6,6 +6,8 @@ SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
 
 USE_TZ = True
 
+SITE_ID = 1
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -19,6 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.admin",
+    "django.contrib.sites",
     "django_setup_configuration",
     "testapp",
 ]
