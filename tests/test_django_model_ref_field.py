@@ -1,6 +1,10 @@
 from typing import Literal
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_slug
+
 import pytest
+from pydantic import ValidationError
 from pydantic.fields import PydanticUndefined
 
 from django_setup_configuration.fields import DjangoModelRef
@@ -49,6 +53,56 @@ def test_annotation_overrides_django_type():
     assert field.annotation == str
     assert field.default == PydanticUndefined
     assert field.is_required() is True
+
+
+@pytest.mark.parametrize(
+    "invalid_values",
+    (
+        "",
+        "hello world",
+        "user@email.com",
+        "$price",
+        "my.variable",
+        "résumé",
+        "hello!",
+        "!",
+        "#",
+        "+",
+    ),
+)
+def test_slug_validation_fails_on_both_pydantic_and_django(invalid_values):
+
+    class Config(ConfigurationModel):
+        slug = DjangoModelRef(TestModel, "slug")
+
+    with pytest.raises(ValidationError):
+        Config(slug=invalid_values)
+
+    with pytest.raises(DjangoValidationError):
+        validate_slug(invalid_values)
+
+
+@pytest.mark.parametrize(
+    "valid_values",
+    (
+        "a",
+        "foo-bar",
+        "foo_bar",
+        "foo_bar_baz",
+        "foo-bar-baz",
+        "fO0-B4r-Baz",
+        "foo-bar-baz",
+        "foobarbaz",
+        "FooBarBaz",
+    ),
+)
+def test_slug_validation_succeeds_on_both_pydantic_and_django(valid_values):
+
+    class Config(ConfigurationModel):
+        slug = DjangoModelRef(TestModel, "slug")
+
+    Config.model_validate(dict(slug=valid_values))
+    validate_slug(valid_values)  # does not raise
 
 
 def test_no_default_makes_field_required():
