@@ -135,7 +135,10 @@ class DjangoModelRefInfo(FieldInfo):
     ):
         """Map Django field types to Python types."""
         if choices := getattr(django_field, "choices"):
-            choice_values = tuple(choice[0] for choice in choices)
+            choice_values = tuple(
+                choice[0]
+                for choice in (choices if not callable(choices) else choices())
+            )
             return Literal[choice_values]
 
         mapping: Mapping[

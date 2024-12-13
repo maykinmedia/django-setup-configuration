@@ -42,3 +42,7 @@ class TestModel(models.Model):
     int_with_choices_and_blank_and_non_choice_default = models.IntegerField(
         blank=True, choices=((1, "FOO"), (8, "BAR")), default=42
     )
+
+    int_with_choices_callable = models.IntegerField(
+        choices=lambda: ((1, "FOO"), (8, "BAR"))
+    )

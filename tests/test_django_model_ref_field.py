@@ -296,6 +296,22 @@ def test_int_with_choices_has_literal_annotation():
     assert field.is_required() is True
 
 
+def test_int_with_choices_callable_has_literal_annotation():
+
+    class Config(ConfigurationModel):
+        int_with_choices_callable = DjangoModelRef(
+            TestModel, "int_with_choices_callable"
+        )
+
+    field = Config.model_fields["int_with_choices_callable"]
+
+    assert field.title == "int with choices callable"
+    assert field.description is None
+    assert field.annotation == Literal[1, 8]
+    assert field.default == PydanticUndefined
+    assert field.is_required() is True
+
+
 def test_int_with_choices_and_override_has_overridden_annotation():
 
     class Config(ConfigurationModel):
