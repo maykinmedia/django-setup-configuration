@@ -225,6 +225,18 @@ Command Line
 
     python manage.py setup_configuration --yaml-file /path/to/config.yaml
 
+You can also validate that the configuration source can be successfully loaded,
+without actually running the steps, by adding the ``validate-only`` flag:
+
+.. code-block:: bash
+
+    python manage.py setup_configuration --yaml-file /path/to/config.yaml --validate-only
+
+The command will either return 0 and a success message if the configuration file can
+be loaded without issues, otherwise it will return a non-zero exit code and print any
+validation errors. This can be useful e.g. in CI to confirm that your sources are
+valid without actually running any steps.
+
 Programmatically
 ^^^^^^^^^^^^^^^^
 
