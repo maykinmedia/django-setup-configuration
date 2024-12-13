@@ -159,7 +159,7 @@ def test_blank_is_true_null_is_false_sets_default_to_empty_str_for_str_fields():
 
     assert field.title == "blank str"
     assert field.description is None
-    assert field.annotation == str | None
+    assert field.annotation == str | Literal[""]
     assert field.default == ""
     assert field.is_required() is False
 
@@ -254,3 +254,51 @@ def test_int_with_choices_and_override_has_overridden_annotation():
     assert field.annotation == bool
     assert field.default == PydanticUndefined
     assert field.is_required() is True
+
+
+def test_str_with_choices_and_blank_allows_empty_string_in_annotation():
+
+    class Config(ConfigurationModel):
+        str_with_choices_and_blank = DjangoModelRef(
+            TestModel, "str_with_choices_and_blank"
+        )
+
+    field = Config.model_fields["str_with_choices_and_blank"]
+
+    assert field.title == "str with choices and blank"
+    assert field.description is None
+    assert field.annotation == Literal["foo", "bar"] | Literal[""]
+    assert field.default == ""
+    assert field.is_required() is False
+
+
+def test_int_with_choices_and_blank_adds_default_in_annotation():
+
+    class Config(ConfigurationModel):
+        int_with_choices_and_blank = DjangoModelRef(
+            TestModel, "int_with_choices_and_blank"
+        )
+
+    field = Config.model_fields["int_with_choices_and_blank"]
+
+    assert field.title == "int with choices and blank"
+    assert field.description is None
+    assert field.annotation == Literal[1, 8] | None
+    assert field.default is None
+    assert field.is_required() is False
+
+
+def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annotation():
+
+    class Config(ConfigurationModel):
+        int_with_choices_and_blank_and_non_choice_default = DjangoModelRef(
+            TestModel, "int_with_choices_and_blank_and_non_choice_default"
+        )
+
+    field = Config.model_fields["int_with_choices_and_blank_and_non_choice_default"]
+
+    assert field.title == "int with choices and blank and non choice default"
+    assert field.description is None
+    assert field.annotation == Literal[1, 8] | Literal[42]
+    assert field.default == 42
+    assert field.is_required() is False
