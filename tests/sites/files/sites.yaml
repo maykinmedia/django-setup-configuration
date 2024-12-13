@@ -1,0 +1,7 @@
+sites_config_enable: true
+sites_config:
+  items:
+  - domain: domain.local1:8000
+    name: Domain1
+  - domain: domain.local2:8000
+    name: Domain2
