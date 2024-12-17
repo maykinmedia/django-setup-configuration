@@ -127,6 +127,17 @@ class DjangoModelRefInfo(FieldInfo):
             else:
                 field_info_creation_kwargs["default"] = inferred_default
 
+        # Defaults for fields with choices often do not map neatly onto the consructed
+        # type used for serialization (e.g. a string) because they may not be a literal
+        # choices but e.g. an enum/Choices member. Inferring the types of the default
+        # can be non-trivial (especially if a default factory is involved), and because
+        # we care about types that can be expressed as simple YAML/JSON scalars, it also
+        # would not make much sense to add complex types to the annotation.
+        validate_defaults = False if self.django_field.choices else True
+        field_info_creation_kwargs["validate_default"] = field_info_creation_kwargs[
+            "validate_return"
+        ] = validate_defaults
+
         return super().__init__(**field_info_creation_kwargs)
 
     @staticmethod
@@ -135,7 +146,10 @@ class DjangoModelRefInfo(FieldInfo):
     ):
         """Map Django field types to Python types."""
         if choices := getattr(django_field, "choices"):
-            choice_values = tuple(choice[0] for choice in choices)
+            choice_values = tuple(
+                choice[0]
+                for choice in (choices if not callable(choices) else choices())
+            )
             return Literal[choice_values]
 
         mapping: Mapping[

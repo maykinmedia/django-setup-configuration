@@ -296,6 +296,22 @@ def test_int_with_choices_has_literal_annotation():
     assert field.is_required() is True
 
 
+def test_int_with_choices_callable_has_literal_annotation():
+
+    class Config(ConfigurationModel):
+        int_with_choices_callable = DjangoModelRef(
+            TestModel, "int_with_choices_callable"
+        )
+
+    field = Config.model_fields["int_with_choices_callable"]
+
+    assert field.title == "int with choices callable"
+    assert field.description is None
+    assert field.annotation == Literal[1, 8]
+    assert field.default == PydanticUndefined
+    assert field.is_required() is True
+
+
 def test_int_with_choices_and_override_has_overridden_annotation():
 
     class Config(ConfigurationModel):
@@ -356,3 +372,18 @@ def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annot
     assert field.annotation == Literal[1, 8] | Literal[42]
     assert field.default == 42
     assert field.is_required() is False
+
+
+def test_choices_with_incorrectly_typed_default_is_not_validated():
+
+    class Config(ConfigurationModel):
+        str_with_choices_and_incorrectly_typed_default = DjangoModelRef(
+            TestModel, "str_with_choices_and_incorrectly_typed_default"
+        )
+        str_with_choices_and_incorrectly_typed_default_factory = DjangoModelRef(
+            TestModel, "str_with_choices_and_incorrectly_typed_default_factory"
+        )
+
+    config = Config()
+    assert config.str_with_choices_and_incorrectly_typed_default == 1974
+    assert config.str_with_choices_and_incorrectly_typed_default_factory == 1985
