@@ -25,6 +25,12 @@ class TestModel(models.Model):
     str_with_choices_and_default = models.CharField(
         max_length=3, choices=StrChoices.choices, default=StrChoices.bar
     )
+    str_with_choices_and_incorrectly_typed_default = models.CharField(
+        max_length=3, choices=StrChoices.choices, default=1974
+    )
+    str_with_choices_and_incorrectly_typed_default_factory = models.CharField(
+        max_length=3, choices=StrChoices.choices, default=lambda: 1985
+    )
     str_with_choices_and_blank = models.CharField(
         max_length=3, choices=StrChoices.choices, blank=True
     )
