@@ -4,6 +4,8 @@ from django_setup_configuration.runner import StepExecutionResult
 from django_setup_configuration.test_utils import execute_single_step
 from tests.conftest import TestStep
 
+pytestmark = pytest.mark.django_db
+
 
 def test_exception_during_execute_step_is_immediately_raised(
     step_execute_mock,

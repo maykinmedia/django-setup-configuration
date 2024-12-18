@@ -12,6 +12,8 @@ from django_setup_configuration.runner import (
 from django_setup_configuration.test_utils import execute_single_step
 from tests.conftest import TestStep, TestStepConfig
 
+pytestmark = pytest.mark.django_db
+
 
 def test_runner_raises_on_non_existent_step_module_path(test_step_yaml_path):
     with pytest.raises(ConfigurationException):
