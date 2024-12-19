@@ -32,9 +32,17 @@ class Command(BaseCommand):
             required=True,
             help="Path to YAML file containing the configurations",
         )
+        parser.add_argument(
+            "--validate-only",
+            action="store_true",
+            default=False,
+            help="Validate that all the step configurations can be successfully loaded "
+            "from source, without actually executing the steps.",
+        )
 
     @transaction.atomic
     def handle(self, **options):
+        validate_only = options["validate_only"]
         yaml_file = Path(options["yaml_file"]).resolve()
         if not yaml_file.exists():
             raise CommandError(f"Yaml file `{yaml_file}` does not exist.")
@@ -73,6 +81,14 @@ class Command(BaseCommand):
             raise CommandError(
                 f"Prerequisites for configuration are not fulfilled: {errors.as_text()}"
             )
+
+        if validate_only:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "All configuration values could be successfully read from source."
+                )
+            )
+            return
 
         self.stdout.write("Executing steps...")
 

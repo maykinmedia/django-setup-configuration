@@ -147,6 +147,40 @@ def test_command_success(
     step_execute_mock.assert_called_once_with(expected_step_config)
 
 
+def test_command_success_with_validate_only_flag_does_not_run(
+    settings,
+    yaml_file_with_valid_configuration,
+    expected_step_config,
+    step_execute_mock,
+):
+    """
+    test happy flow
+    """
+    assert User.objects.count() == 0
+    stdout = StringIO()
+
+    call_command(
+        "setup_configuration",
+        yaml_file=yaml_file_with_valid_configuration,
+        stdout=stdout,
+        validate_only=True,
+    )
+
+    output = stdout.getvalue().splitlines()
+    expected_output = [
+        f"Loading config settings from {yaml_file_with_valid_configuration}",
+        "The following steps are configured:",
+        "User Configuration",
+        "TestStep",
+        "All configuration values could be successfully read from source.",
+    ]
+
+    assert output == expected_output
+
+    assert User.objects.count() == 0
+    step_execute_mock.assert_not_called()
+
+
 def test_command_with_failing_requirements_reports_errors(
     step_execute_mock, yaml_file_factory
 ):
@@ -169,6 +203,41 @@ def test_command_with_failing_requirements_reports_errors(
         call_command(
             "setup_configuration",
             yaml_file=yaml_path,
+        )
+
+    assert (
+        "User Configuration: Failed to load config model for User Configuration"
+        in str(exc.value)
+    )
+    assert "Failed to load config model for TestStep" in str(exc.value)
+
+    assert User.objects.count() == 0
+    step_execute_mock.assert_not_called()
+
+
+def test_command_with_failing_requirements_and_validate_reports_errors(
+    step_execute_mock, yaml_file_factory
+):
+    yaml_path = yaml_file_factory(
+        {
+            "user_configuration_enabled": True,
+            "user_configuration": {
+                "username": 1874,
+            },
+            "some_extra_attrs": "should be allowed",
+            "test_step_is_enabled": True,
+            "test_step": {
+                "a_string": 42,
+                "username": None,
+            },
+        }
+    )
+
+    with pytest.raises(CommandError) as exc:
+        call_command(
+            "setup_configuration",
+            yaml_file=yaml_path,
+            validate_only=False,
         )
 
     assert (
