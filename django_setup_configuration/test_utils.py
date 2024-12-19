@@ -1,3 +1,4 @@
+from os import PathLike
 from typing import Any
 
 from django_setup_configuration.configuration import BaseConfigurationStep
@@ -37,7 +38,7 @@ def build_step_config_from_sources(
 def execute_single_step(
     step: type[BaseConfigurationStep] | str,
     *,
-    yaml_source: str | None = None,
+    yaml_source: PathLike | str | None = None,
     object_source: dict | None = None,
 ) -> StepExecutionResult:
     """
