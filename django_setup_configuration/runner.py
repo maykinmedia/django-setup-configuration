@@ -180,6 +180,12 @@ class SetupConfigurationRunner:
 
         return steps
 
+    @property
+    def disabled_steps(self) -> list[BaseConfigurationStep]:
+        return [
+            step for step in self.configured_steps if step not in self.enabled_steps
+        ]
+
     def validate_all_requirements(self):
         """
         Validate that the configuration models for each step can be constructed from the

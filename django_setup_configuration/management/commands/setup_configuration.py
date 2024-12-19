@@ -1,3 +1,5 @@
+import functools
+import textwrap
 from pathlib import Path
 
 from django.core.management import BaseCommand, CommandError
@@ -6,15 +8,7 @@ from django.db import transaction
 from django_setup_configuration.exceptions import ValidateRequirementsFailure
 from django_setup_configuration.runner import SetupConfigurationRunner
 
-
-class ErrorDict(dict):
-    """
-    small helper to display errors
-    """
-
-    def as_text(self) -> str:
-        output = [f"{k}: {v}" for k, v in self.items()]
-        return "\n".join(output)
+indent = functools.partial(textwrap.indent, prefix=" " * 4)
 
 
 class Command(BaseCommand):
@@ -57,58 +51,85 @@ class Command(BaseCommand):
         if not runner.configured_steps:
             raise CommandError("No steps configured, aborting.")
 
-        self.stdout.write(
-            "The following steps are configured:\n%s"
-            % "\n".join(str(step) for step in runner.configured_steps),
-        )
+        self.stdout.write("The following steps are configured:")
+        for step in runner.configured_steps:
+            step_is_enabled = step in runner.enabled_steps
+            self.stdout.write(
+                indent(
+                    f"{step.verbose_name} from {step.__class__}"
+                    f" [{'enabled' if step_is_enabled else '***disabled***'}]"
+                ),
+            )
 
         if not runner.enabled_steps:
             raise CommandError("No steps enabled, aborting.")
 
-        errors = ErrorDict()
+        if disabled_steps := runner.disabled_steps:
+            self.stdout.write(
+                "The following steps will be skipped because they are disabled:",
+                self.style.WARNING,
+            )
+            for step in disabled_steps:
+                self.stdout.write(
+                    indent(
+                        f"{step.verbose_name} from {step.__class__}"
+                        f" [{step.enable_setting} = false]"
+                    ),
+                    self.style.WARNING,
+                )
+
         # 1. Check prerequisites of all steps
+        steps_with_invalid_requirements = []
+        self.stdout.write()
+        self.stdout.write("Validating requirements...")
         try:
             runner.validate_all_requirements()
         except ValidateRequirementsFailure as exc_group:
             for exc in exc_group.exceptions:
                 self.stderr.write(
-                    f"Unable to satisfy prerequisites for step:"
-                    f" {exc.step.verbose_name}:"
-                )
-                errors[exc.step] = str(exc)
-
-        if errors:
-            raise CommandError(
-                f"Prerequisites for configuration are not fulfilled: {errors.as_text()}"
-            )
-
-        if validate_only:
-            self.stdout.write(
-                self.style.SUCCESS(
-                    "All configuration values could be successfully read from source."
-                )
-            )
-            return
-
-        self.stdout.write("Executing steps...")
-
-        # 2. Configure steps
-        for result in runner.execute_all_iter():
-            if not result.is_enabled:
-                self.stdout.write(
-                    self.style.NOTICE(
-                        f"Skipping step '{result.step}' because it is not enabled"
+                    self.style.ERROR(
+                        f"Invalid configuration settings for step"
+                        f' "{exc.step.verbose_name}":'
                     )
                 )
-                continue
+                # Print an indented version of the validation error
+                self.stderr.write(indent(str(exc.validation_error)), self.style.ERROR)
+                self.stderr.write()
+                steps_with_invalid_requirements.append(exc.step)
 
+            raise CommandError(
+                f"Failed to validate requirements for {len(exc_group.exceptions)}"
+                " steps"
+            )
+
+        self.stdout.write(
+            "Valid configuration settings found for all steps.", self.style.SUCCESS
+        )
+
+        # Bail out early if we're only validating
+        if validate_only:
+            return
+
+        # 2. Execute steps
+        self.stdout.write()
+        self.stdout.write("Executing steps...")
+        for result in runner.execute_all_iter():
             if exc := result.run_exception:
-                raise CommandError(
-                    f"Error while executing step `{result.step}`: {str(exc)}"
+                self.stderr.write(
+                    f"Error while executing step `{result.step}`", self.style.ERROR
                 )
+                self.stderr.write(indent(str(exc)))
+
+                raise CommandError(
+                    "Aborting run due to a failed step. All database changes have been"
+                    " rolled back."
+                ) from exc
             else:
                 self.stdout.write(
-                    self.style.SUCCESS(f"Successfully executed step: {result.step}")
+                    indent(f"Successfully executed step: {result.step}"),
+                    self.style.SUCCESS,
                 )
 
-        self.stdout.write(self.style.SUCCESS("Instance configuration completed."))
+        # Done
+        self.stdout.write("")
+        self.stdout.write("Configuration completed.", self.style.SUCCESS)

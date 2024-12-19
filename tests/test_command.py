@@ -3,6 +3,7 @@ from io import StringIO
 from django.contrib.auth.models import User
 from django.core.management import CommandError, call_command
 
+import pydantic
 import pytest
 
 from django_setup_configuration.test_utils import build_step_config_from_sources
@@ -108,7 +109,6 @@ def test_command_errors_on_bad_yaml_file(step_execute_mock):
 
 
 def test_command_success(
-    settings,
     yaml_file_with_valid_configuration,
     expected_step_config,
     step_execute_mock,
@@ -117,25 +117,35 @@ def test_command_success(
     test happy flow
     """
     assert User.objects.count() == 0
-    stdout = StringIO()
+    stdout, stderr = StringIO(), StringIO()
 
     call_command(
         "setup_configuration",
         yaml_file=yaml_file_with_valid_configuration,
         stdout=stdout,
+        stderr=stderr,
     )
 
+    assert stderr.getvalue() == ""
+
+    # flake8: noqa: E501
     output = stdout.getvalue().splitlines()
     expected_output = [
         f"Loading config settings from {yaml_file_with_valid_configuration}",
         "The following steps are configured:",
-        "User Configuration",
-        "TestStep",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "",
+        "Validating requirements...",
+        "Valid configuration settings found for all steps.",
+        "",
         "Executing steps...",
-        "Successfully executed step: User Configuration",
-        "Successfully executed step: TestStep",
-        "Instance configuration completed.",
+        "    Successfully executed step: User Configuration",
+        "    Successfully executed step: TestStep",
+        "",
+        "Configuration completed.",
     ]
+    # flake8: qa: E501
 
     assert output == expected_output
 
@@ -153,26 +163,25 @@ def test_command_success_with_validate_only_flag_does_not_run(
     expected_step_config,
     step_execute_mock,
 ):
-    """
-    test happy flow
-    """
-    assert User.objects.count() == 0
-    stdout = StringIO()
+    stdout, stderr = StringIO(), StringIO()
 
     call_command(
         "setup_configuration",
         yaml_file=yaml_file_with_valid_configuration,
-        stdout=stdout,
         validate_only=True,
+        stdout=stdout,
+        stderr=stderr,
     )
 
     output = stdout.getvalue().splitlines()
     expected_output = [
         f"Loading config settings from {yaml_file_with_valid_configuration}",
         "The following steps are configured:",
-        "User Configuration",
-        "TestStep",
-        "All configuration values could be successfully read from source.",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "",
+        "Validating requirements...",
+        "Valid configuration settings found for all steps.",
     ]
 
     assert output == expected_output
@@ -199,17 +208,57 @@ def test_command_with_failing_requirements_reports_errors(
         }
     )
 
+    stdout, stderr = StringIO(), StringIO()
     with pytest.raises(CommandError) as exc:
         call_command(
             "setup_configuration",
             yaml_file=yaml_path,
+            stdout=stdout,
+            stderr=stderr,
         )
 
-    assert (
-        "User Configuration: Failed to load config model for User Configuration"
-        in str(exc.value)
-    )
-    assert "Failed to load config model for TestStep" in str(exc.value)
+    assert "Failed to validate requirements for 2 steps" in str(exc.value)
+
+    output = stderr.getvalue().splitlines()
+
+    # Strip the patch version, which is not used in the URLs
+    pydantic_version = ".".join(pydantic.__version__.split(".")[:2])
+    # flake8: noqa: E501
+    expected_output = [
+        'Invalid configuration settings for step "User Configuration":',
+        "    2 validation errors for ConfigSettingsSourceUser_configuration",
+        "    user_configuration.username",
+        "      Input should be a valid string [type=string_type, input_value=1874, input_type=int]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/string_type",
+        "    user_configuration.password",
+        "      Field required [type=missing, input_value={'username': 1874}, input_type=dict]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/missing",
+        "",
+        'Invalid configuration settings for step "TestStep":',
+        "    2 validation errors for ConfigSettingsSourceTest_step",
+        "    test_step.a_string",
+        "      Input should be a valid string [type=string_type, input_value=42, input_type=int]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/string_type",
+        "    test_step.username",
+        "      Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/string_type",
+        "",
+    ]
+
+    assert output == expected_output
+
+    output = stdout.getvalue().splitlines()
+    expected_output = [
+        f"Loading config settings from {yaml_path}",
+        "The following steps are configured:",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "",
+        "Validating requirements...",
+    ]
+    # flake8: qa: E501
+
+    assert output == expected_output
 
     assert User.objects.count() == 0
     step_execute_mock.assert_not_called()
@@ -233,18 +282,55 @@ def test_command_with_failing_requirements_and_validate_reports_errors(
         }
     )
 
+    stdout, stderr = StringIO(), StringIO()
     with pytest.raises(CommandError) as exc:
         call_command(
             "setup_configuration",
             yaml_file=yaml_path,
             validate_only=False,
+            stdout=stdout,
+            stderr=stderr,
         )
 
-    assert (
-        "User Configuration: Failed to load config model for User Configuration"
-        in str(exc.value)
-    )
-    assert "Failed to load config model for TestStep" in str(exc.value)
+    output = stderr.getvalue().splitlines()
+
+    # Strip the patch version, which is not used in the URLs
+    pydantic_version = ".".join(pydantic.__version__.split(".")[:2])
+    # flake8: noqa: E501
+    expected_output = [
+        'Invalid configuration settings for step "User Configuration":',
+        "    2 validation errors for ConfigSettingsSourceUser_configuration",
+        "    user_configuration.username",
+        "      Input should be a valid string [type=string_type, input_value=1874, input_type=int]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/string_type",
+        "    user_configuration.password",
+        "      Field required [type=missing, input_value={'username': 1874}, input_type=dict]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/missing",
+        "",
+        'Invalid configuration settings for step "TestStep":',
+        "    2 validation errors for ConfigSettingsSourceTest_step",
+        "    test_step.a_string",
+        "      Input should be a valid string [type=string_type, input_value=42, input_type=int]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/string_type",
+        "    test_step.username",
+        "      Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]",
+        f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/string_type",
+        "",
+    ]
+
+    assert output == expected_output
+
+    output = stdout.getvalue().splitlines()
+    expected_output = [
+        f"Loading config settings from {yaml_path}",
+        "The following steps are configured:",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "",
+        "Validating requirements...",
+    ]
+    assert output == expected_output
+    # flake8: qa: E501
 
     assert User.objects.count() == 0
     step_execute_mock.assert_not_called()
@@ -255,27 +341,43 @@ def test_command_with_failing_execute_reports_errors(
 ):
     step_execute_mock.side_effect = ValueError("Something went wrong")
 
-    stdout = StringIO()
+    stdout, stderr = StringIO(), StringIO()
 
     with pytest.raises(CommandError) as exc:
         call_command(
             "setup_configuration",
-            stdout=stdout,
             yaml_file=yaml_file_with_valid_configuration,
+            stdout=stdout,
+            stderr=stderr,
         )
 
+    # flake8: noqa: E501
     assert (
-        str(exc.value) == "Error while executing step `TestStep`: Something went wrong"
+        str(exc.value)
+        == "Aborting run due to a failed step. All database changes have been rolled back."
     )
 
     output = stdout.getvalue().splitlines()
     expected_output = [
         f"Loading config settings from {yaml_file_with_valid_configuration}",
         "The following steps are configured:",
-        "User Configuration",
-        "TestStep",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "",
+        "Validating requirements...",
+        "Valid configuration settings found for all steps.",
+        "",
         "Executing steps...",
-        "Successfully executed step: User Configuration",
+        "    Successfully executed step: User Configuration",
+    ]
+    # flake8: qa: E501
+
+    assert output == expected_output
+
+    output = stderr.getvalue().splitlines()
+    expected_output = [
+        "Error while executing step `TestStep`",
+        "    Something went wrong",
     ]
 
     assert output == expected_output
@@ -292,3 +394,89 @@ def test_load_step_config_from_source_returns_correct_model(
     )
 
     assert model == user_config_model
+
+
+def test_command_aborts_on_no_enabled_steps(step_execute_mock, yaml_file_factory):
+    yaml_path = yaml_file_factory(
+        {
+            "user_configuration_enabled": False,
+            "test_step_is_enabled": False,
+        }
+    )
+
+    stdout, stderr = StringIO(), StringIO()
+    with pytest.raises(CommandError) as exc:
+        call_command(
+            "setup_configuration",
+            yaml_file=yaml_path,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+    assert str(exc.value) == "No steps enabled, aborting."
+
+    output = stdout.getvalue().splitlines()
+    # flake8: noqa: E501
+    expected_output = [
+        f"Loading config settings from {yaml_path}",
+        "The following steps are configured:",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [***disabled***]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [***disabled***]",
+    ]
+    # flake8: qa: E501
+
+    assert output == expected_output
+
+    assert stderr.getvalue() == ""
+
+    assert User.objects.count() == 0
+    step_execute_mock.assert_not_called()
+
+
+def test_command_with_disabled_and_enabled_steps_lists_the_disabled_steps(
+    step_execute_mock, yaml_file_factory
+):
+    yaml_path = yaml_file_factory(
+        {
+            "user_configuration_enabled": True,
+            "user_configuration": {
+                "username": "alice",
+                "password": "secret",
+            },
+            "test_step_is_enabled": False,
+        }
+    )
+
+    stdout, stderr = StringIO(), StringIO()
+    call_command(
+        "setup_configuration",
+        yaml_file=yaml_path,
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+    # flake8: noqa: E501
+    output = stdout.getvalue().splitlines()
+    expected_output = [
+        f"Loading config settings from {yaml_path}",
+        "The following steps are configured:",
+        "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
+        "    TestStep from <class 'tests.conftest.TestStep'> [***disabled***]",
+        "The following steps will be skipped because they are disabled:",
+        "    TestStep from <class 'tests.conftest.TestStep'> [test_step_is_enabled = false]",
+        "",
+        "Validating requirements...",
+        "Valid configuration settings found for all steps.",
+        "",
+        "Executing steps...",
+        "    Successfully executed step: User Configuration",
+        "",
+        "Configuration completed.",
+    ]
+    # flake8: qa: E501
+
+    assert output == expected_output
+    assert stderr.getvalue() == ""
+
+    assert User.objects.count() == 1
+    step_execute_mock.assert_not_called()
