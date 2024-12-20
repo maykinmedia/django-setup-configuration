@@ -3,21 +3,28 @@ import importlib
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from pydantic import BaseModel
-from typing import Type
+from typing import Type, Dict, Any
 from django_setup_configuration.fields import DjangoModelRefInfo
 from sphinx.directives.code import CodeBlock
 
 
-def generate_model_example(model: Type[BaseModel]) -> dict:
+def generate_model_example(model: Type[BaseModel]) -> Dict[str, Any]:
     example_data = {}
 
     # Loop through the annotations of the model to create example data
     for field_name, field_type in model.__annotations__.items():
+        field_info = model.model_fields.get(field_name)
+        field_description = field_info.description if field_info else None
+
         if isinstance(field_type, DjangoModelRefInfo):
             # For DjangoModelRef, provide a mock string (model reference)
             example_data[field_name] = "mock_django_model_reference"
 
-        elif isinstance(field_type, type) and isinstance(field_type, BaseModel):
+        if field_info.examples:
+            example_data[field_name] = field_info.examples[0]
+            continue
+
+        elif isinstance(field_type, type) and issubclass(field_type, BaseModel):
             # For nested Pydantic models, create an example using that model
             example_data[field_name] = generate_model_example(field_type)
 
