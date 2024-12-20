@@ -1,4 +1,5 @@
 from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
 
 import pytest
 
@@ -82,3 +83,44 @@ def test_execute_configuration_step_failing_should_keep_existing_sites():
 
     assert Site.objects.count() == 1
     assert Site.objects.get() == site
+
+
+@pytest.mark.django_db
+def test_execute_configuration_step_creates_a_current_site_if_no_sites_exist():
+    Site.objects.all().delete()
+
+    execute_single_step(SitesConfigurationStep, yaml_source=CONFIG_FILE_PATH)
+
+    site1, site2 = Site.objects.all()
+
+    assert site1.domain == "domain.local1:8000"
+    assert site1.name == "Domain1"
+    assert site2.domain == "domain.local2:8000"
+    assert site2.name == "Domain2"
+    assert Site.objects.get_current() == site1
+
+
+@pytest.fixture()
+def empty_site_id_in_settings(settings):
+    settings.SITE_ID = None
+
+
+@pytest.mark.usefixtures("empty_site_id_in_settings")
+@pytest.mark.django_db
+def test_execute_configuration_step_creates_a_current_site_if_no_sites_or_site_id():
+    Site.objects.all().delete()
+
+    execute_single_step(SitesConfigurationStep, yaml_source=CONFIG_FILE_PATH)
+
+    site1, site2 = Site.objects.all()
+
+    assert site1.domain == "domain.local1:8000"
+    assert site1.name == "Domain1"
+    assert site2.domain == "domain.local2:8000"
+    assert site2.name == "Domain2"
+
+    # There is no SITE_ID defined. We should still have created the Sites, but there is
+    # no default defined, so `get_current()` will not work without passing a request
+    # (which would allow Django to match on the host).
+    with pytest.raises(ImproperlyConfigured):
+        Site.objects.get_current()
