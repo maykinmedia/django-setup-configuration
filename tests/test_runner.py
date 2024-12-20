@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from django_setup_configuration.exceptions import (
@@ -199,3 +201,28 @@ def test_settings_can_be_overriden_with_object(
             "username": "overriden username",
         },
     )
+
+
+@pytest.mark.parametrize(
+    "path_factory",
+    (
+        lambda path: str(path),
+        lambda path: Path(path),
+    ),
+)
+def test_yaml_source_can_be_string_or_path_like(
+    step_execute_mock, expected_step_config, path_factory, test_step_yaml_path
+):
+    result = execute_single_step(
+        TestStep, yaml_source=path_factory(test_step_yaml_path)
+    )
+
+    assert result == StepExecutionResult(
+        step=result.step,
+        is_enabled=True,
+        has_run=True,
+        run_exception=None,
+        config_model=expected_step_config,
+    )
+    assert type(result.step) is TestStep
+    step_execute_mock.assert_called_once_with(expected_step_config)

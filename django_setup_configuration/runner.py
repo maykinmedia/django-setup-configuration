@@ -2,6 +2,7 @@ import inspect
 import logging
 from dataclasses import dataclass
 from functools import partial
+from os import PathLike
 from pathlib import Path
 from typing import Any, Generator
 
@@ -42,7 +43,7 @@ class SetupConfigurationRunner:
     """
 
     configured_steps: list[BaseConfigurationStep]
-    yaml_source: str | None
+    yaml_source: PathLike | None
     object_source: dict | None
 
     _config_source_models_for_step: dict[BaseConfigurationStep, ConfigSourceModels]
@@ -52,7 +53,7 @@ class SetupConfigurationRunner:
         self,
         *,
         steps: list[type[BaseConfigurationStep] | str] | None = None,
-        yaml_source: str | None = None,
+        yaml_source: PathLike | str | None = None,
         object_source: dict | None = None,
     ):
         if not (configured_steps := steps or settings.SETUP_CONFIGURATION_STEPS):
@@ -66,12 +67,14 @@ class SetupConfigurationRunner:
         except ImportError as exc:
             raise ConfigurationException(f"Unable to import step {exc.name}")
 
-        self.yaml_source = yaml_source
-        if self.yaml_source:
-            yaml_file = Path(yaml_source).resolve()
-            if not yaml_file.exists():
+        if yaml_source:
+            self.yaml_source = (
+                Path(yaml_source) if isinstance(yaml_source, str) else yaml_source
+            )
+            self.yaml_source = self.yaml_source.resolve()
+            if not self.yaml_source.exists():
                 raise ConfigurationException(
-                    f"YAML source is not an existing file path: {yaml_file}"
+                    f"YAML source is not an existing file path: {self.yaml_source}"
                 )
 
         self._config_source_models_for_step = {}
