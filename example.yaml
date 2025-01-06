@@ -1,0 +1,51 @@
+nested_field:
+  nested_foo: 'a string'
+  nested_optional_bar: 0  # or: None
+
+config_model:
+  # Foo is my name
+  foo: 'a string'
+  nested_obj:
+    nested_foo: 'a string'
+    nested_optional_bar: 0  # or: None
+  # #####################
+  # Union type with variants:
+  # - NestedConfigModel
+  # - AnotherNestedConfigModel
+  # #####################
+  # -------------------
+  # Variant: NestedConfigModel
+  # -------------------
+  a_union_type:
+    nested_foo: 'a string'
+    nested_optional_bar: 0  # or: None
+  # -------------------
+  # Variant: AnotherNestedConfigModel
+  # -------------------
+  a_union_type:
+    nested_foo: 'a string'
+    nested_optional_bar: 0  # or: None
+  # #####################
+  # Union type with variants:
+  # - NestedConfigModel
+  # - AnotherNestedConfigModel
+  # #####################
+  # -------------------
+  # Variant: NestedConfigModel
+  # -------------------
+  a_legacy_union_type:
+    nested_foo: 'a string'
+    nested_optional_bar: 0  # or: None
+  # -------------------
+  # Variant: AnotherNestedConfigModel
+  # -------------------
+  a_legacy_union_type:
+    nested_foo: 'a string'
+    nested_optional_bar: 0  # or: None
+
+deep_nested: ['string1', 'string2']  # or: list[tests.test_docgen.ConfigModel | tests.test_docgen.NestedConfigModel]
+
+# Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.
+username: 'a string'
+
+password: 'a string'
