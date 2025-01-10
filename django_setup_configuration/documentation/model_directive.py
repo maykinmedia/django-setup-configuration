@@ -101,18 +101,35 @@ def insert_example_with_comments(
 
 
 def insert_as_full_comment(
-    example_data: CommentedMap, field_name: str, example: Any, depth: int
+    example_data: CommentedMap,
+    field_name: str,
+    example: Any,
+    depth: int,
+    before: bool = False,
 ):
     yaml = ruamel.yaml.YAML()
     yaml.indent(mapping=2, sequence=4, offset=2)
-
     output = io.StringIO()
     yaml.dump(example, output)
     yaml_example = output.getvalue()
+
+    # Remove newlines and dots, dumping simple values will add an ellipsis
+    # TODO is there another way to prevent this?
+    if yaml_example.endswith("...\n"):
+        yaml_example = yaml_example.rstrip("\n.")
+        yaml_example = f"{field_name}: {yaml_example}\n"
+    else:
+        # Ensure indentation is correct for complex examples
+        yaml_example = "\n".join(
+            ["  " + line for line in yaml_example.splitlines()]
+        ).lstrip(" ")
+        yaml_example = f"{field_name}:{yaml_example}\n"
+
+    kwargs = {"before": yaml_example} if before else {"after": yaml_example}
     example_data.yaml_set_comment_before_after_key(
         field_name,
-        after=f"{yaml_example}\n",
         indent=depth * 2,
+        **kwargs,
     )
 
 
@@ -124,17 +141,11 @@ def generate_model_example(model: Type[BaseModel], depth: int = 0) -> Dict[str, 
         _data = process_field_type(
             field_info.annotation, field_info, field_name, depth + 1
         )
-        # TODO refactor this
         if isinstance(_data, PolymorphicExample):
-            example = _data.example
-        else:
-            example = _data
+            insert_example_with_comments(
+                example_data, field_name, field_info, _data.example, depth
+            )
 
-        insert_example_with_comments(
-            example_data, field_name, field_info, example, depth
-        )
-
-        if isinstance(_data, PolymorphicExample):
             yaml_set_comment_with_max_length(
                 example_data,
                 field_name,
@@ -148,17 +159,22 @@ def generate_model_example(model: Type[BaseModel], depth: int = 0) -> Dict[str, 
             for i, commented_example in enumerate(_data.commented_out_examples):
                 example_data.yaml_set_comment_before_after_key(
                     field_name,
-                    after=(f"-------------OPTION {i+1}-------------"),
+                    before=(f"-------------OPTION {i+1}-------------"),
                     indent=depth * 2,
                 )
                 insert_as_full_comment(
-                    example_data, field_name, commented_example, depth
+                    example_data, field_name, commented_example, depth, before=True
                 )
             example_data.yaml_set_comment_before_after_key(
                 field_name,
-                after=(f"-------------OPTION {i+2}-------------"),
+                before=(f"-------------OPTION {i+2}-------------"),
                 indent=depth * 2,
             )
+        else:
+            insert_example_with_comments(
+                example_data, field_name, field_info, _data, depth
+            )
+
     return example_data
 
 
@@ -174,7 +190,6 @@ def process_field_type(
 
     # Step 1: Handle Annotated
     if get_origin(field_type) == Annotated:
-        # Extract the first argument from Annotated, which could be a Union
         annotated_type = get_args(field_type)[0]
 
         # Process the unwrapped type
@@ -190,7 +205,6 @@ def process_field_type(
         if union_types[1:] == (NoneType,):
             return data
 
-        # TODO only tackle complex types here? e.g. pydantic models or otherwise
         other = [
             process_field_type(type, field_info, field_name, 0)
             for type in union_types[1:]

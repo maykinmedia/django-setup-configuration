@@ -60,6 +60,7 @@ class TestConfigModel(ConfigurationModel):
     union_of_models2: NestedConfigurationModel | NestedConfigurationModel2 = Field(
         description="union of models with |"
     )
+    union_of_primitives: Union[str, int] = Field()
 
     class Meta:
         django_model_refs = {
@@ -136,15 +137,14 @@ def test_my_directive_output(register_directive, docutils_document):
           # REQUIRED: True
           # This value is polymorphic, the possible values are divided by dashes
           # and only one of them can be commented out.
+          # -------------OPTION 1-------------
+          # union_of_models:
+          #   # DESCRIPTION: Nested description2
+          #   # DEFAULT VALUE: 1
+          #   # REQUIRED: False
+          #   bar: 1234
+          # -------------OPTION 2-------------
           union_of_models:
-            # -------------OPTION 1-------------
-
-            # # DESCRIPTION: Nested description2
-            # # DEFAULT VALUE: 1
-            # # REQUIRED: False
-            # bar: 1234
-
-            # -------------OPTION 2-------------
 
             # DESCRIPTION: Nested description
             # DEFAULT VALUE: bar
@@ -155,20 +155,27 @@ def test_my_directive_output(register_directive, docutils_document):
           # REQUIRED: True
           # This value is polymorphic, the possible values are divided by dashes
           # and only one of them can be commented out.
+          # -------------OPTION 1-------------
+          # union_of_models2:
+          #   # DESCRIPTION: Nested description2
+          #   # DEFAULT VALUE: 1
+          #   # REQUIRED: False
+          #   bar: 1234
+          # -------------OPTION 2-------------
           union_of_models2:
-            # -------------OPTION 1-------------
-
-            # # DESCRIPTION: Nested description2
-            # # DEFAULT VALUE: 1
-            # # REQUIRED: False
-            # bar: 1234
-
-            # -------------OPTION 2-------------
 
             # DESCRIPTION: Nested description
             # DEFAULT VALUE: bar
             # REQUIRED: False
             foo: baz
+
+          # REQUIRED: True
+          # This value is polymorphic, the possible values are divided by dashes
+          # and only one of them can be commented out.
+          # -------------OPTION 1-------------
+          # union_of_primitives: 123
+          # -------------OPTION 2-------------
+          union_of_primitives: example_string
 
           # REQUIRED: True
           required_int: 1234
