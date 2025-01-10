@@ -4,7 +4,17 @@ import textwrap
 from dataclasses import dataclass
 from enum import Enum
 from types import NoneType, UnionType
-from typing import Annotated, Any, Dict, Literal, Type, Union, get_args, get_origin
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
 
 import ruamel.yaml
 from docutils import nodes
@@ -18,19 +28,28 @@ from ruamel.yaml.comments import CommentedMap
 @dataclass
 class PolymorphicExample:
     example: Any
-    commented_out_examples: list[Any]
+    commented_out_examples: List[Any]
 
 
 def get_default_from_field_info(field_info: FieldInfo) -> Any:
-    if field_info.default != PydanticUndefined and field_info.default:
-        if isinstance(field_info.default, Enum):
-            return field_info.default.value
-        return field_info.default
-    elif field_info.default_factory and (default := field_info.default_factory()):
-        return default
+    """
+    Retrieves the default value from a FieldInfo object if available.
+
+    :param field_info: The FieldInfo object.
+    :return: The default value or None if not defined.
+    """
+    if field_info.default not in {PydanticUndefined, None}:
+        return (
+            field_info.default.value
+            if isinstance(field_info.default, Enum)
+            else field_info.default
+        )
+    if field_info.default_factory:
+        return field_info.default_factory()
+    return None
 
 
-def yaml_set_comment_with_max_length(
+def yaml_set_wrapped_comment(
     commented_map: CommentedMap,
     key: str,
     comment: str,
@@ -39,29 +58,18 @@ def yaml_set_comment_with_max_length(
     before: bool = True,
 ):
     """
-    Adds a comment to the specified key in the commented map, wrapping it to fit within
-    the max_line_length.
+    Adds a wrapped comment to a specified key in the CommentedMap.
 
     :param commented_map: The CommentedMap object.
-    :param key: The key where the comment should be placed.
-    :param comment: The comment string to be added.
-    :param max_line_length: The maximum allowed line length for the comment.
-    :param before: Whether to place the comment before or after the key.
-        Defaults to `True` (before).
+    :param key: The key to which the comment is added.
+    :param comment: The comment text.
+    :param max_line_length: Maximum line length for wrapping.
+    :param indent: Indentation level.
+    :param before: Whether to place the comment before the key.
     """
-    # Split the comment into lines with the specified max line length
     wrapped_comment = textwrap.fill(comment, width=max_line_length)
-
-    # If before is True, add the comment before the key
-    if before:
-        commented_map.yaml_set_comment_before_after_key(
-            key, before=wrapped_comment, after=None, indent=indent
-        )
-    else:
-        # Otherwise, add it after the key
-        commented_map.yaml_set_comment_before_after_key(
-            key, before=None, after=wrapped_comment, indent=indent
-        )
+    kwargs = {"before": wrapped_comment} if before else {"after": wrapped_comment}
+    commented_map.yaml_set_comment_before_after_key(key, indent=indent, **kwargs)
 
 
 def insert_example_with_comments(
@@ -71,11 +79,20 @@ def insert_example_with_comments(
     example: Any,
     depth: int,
 ):
+    """
+    Inserts an example value into the CommentedMap with appropriate comments.
+
+    :param example_data: The CommentedMap to update.
+    :param field_name: The name of the field.
+    :param field_info: The FieldInfo object containing metadata.
+    :param example: The example value to insert.
+    :param depth: Current depth for indentation.
+    """
     example_data[field_name] = example
-    # TODO adding a newline after keys is difficult apparently
     example_data.yaml_set_comment_before_after_key(field_name, before="\n")
+
     if field_info.description:
-        yaml_set_comment_with_max_length(
+        yaml_set_wrapped_comment(
             example_data,
             field_name,
             f"DESCRIPTION: {field_info.description}",
@@ -89,9 +106,11 @@ def insert_example_with_comments(
         )
 
     if get_origin(field_info.annotation) == Literal:
-        example_data.yaml_set_comment_before_after_key(
+        yaml_set_wrapped_comment(
+            example_data,
             field_name,
             f"POSSIBLE VALUES: {get_args(field_info.annotation)}",
+            80,
             indent=depth * 2,
         )
 
@@ -107,6 +126,16 @@ def insert_as_full_comment(
     depth: int,
     before: bool = False,
 ):
+    """
+    Inserts an example value as a comment, this is used to display possible values
+    for polymorphic types
+
+    :param example_data: The CommentedMap to update.
+    :param field_name: The name of the field.
+    :param example: The example value to insert.
+    :param depth: Current depth for indentation.
+    :param before: Whether to place the comment before or after the key.
+    """
     yaml = ruamel.yaml.YAML()
     yaml.indent(mapping=2, sequence=4, offset=2)
     output = io.StringIO()
@@ -127,52 +156,62 @@ def insert_as_full_comment(
 
     kwargs = {"before": yaml_example} if before else {"after": yaml_example}
     example_data.yaml_set_comment_before_after_key(
-        field_name,
-        indent=depth * 2,
-        **kwargs,
+        field_name, indent=depth * 2, **kwargs
     )
 
 
 def generate_model_example(model: Type[BaseModel], depth: int = 0) -> Dict[str, Any]:
+    """
+    Generates example data for a Pydantic model.
+
+    :param model: The Pydantic model class.
+    :param depth: Current depth for indentation.
+    :return: A dictionary representing the example data.
+    """
     example_data = CommentedMap()
 
-    # Loop through the annotations of the model to create example data
     for field_name, field_info in model.model_fields.items():
-        _data = process_field_type(
+        example_value = process_field_type(
             field_info.annotation, field_info, field_name, depth + 1
         )
-        if isinstance(_data, PolymorphicExample):
+
+        if isinstance(example_value, PolymorphicExample):
             insert_example_with_comments(
-                example_data, field_name, field_info, _data.example, depth
+                example_data, field_name, field_info, example_value.example, depth
             )
 
-            yaml_set_comment_with_max_length(
+            yaml_set_wrapped_comment(
                 example_data,
                 field_name,
                 (
                     "This value is polymorphic, the possible values are divided by "
-                    "dashes and only one of them can be commented out.\n"
+                    "dashes and only one of them can be commented out."
                 ),
                 70,
                 indent=depth * 2,
             )
-            for i, commented_example in enumerate(_data.commented_out_examples):
+
+            for i, commented_example in enumerate(example_value.commented_out_examples):
                 example_data.yaml_set_comment_before_after_key(
                     field_name,
-                    before=(f"-------------OPTION {i+1}-------------"),
+                    before=f"-------------OPTION {i + 1}-------------",
                     indent=depth * 2,
                 )
                 insert_as_full_comment(
                     example_data, field_name, commented_example, depth, before=True
                 )
+
             example_data.yaml_set_comment_before_after_key(
                 field_name,
-                before=(f"-------------OPTION {i+2}-------------"),
+                before=(
+                    f"-------------OPTION "
+                    f"{len(example_value.commented_out_examples) + 1}-------------"
+                ),
                 indent=depth * 2,
             )
         else:
             insert_example_with_comments(
-                example_data, field_name, field_info, _data, depth
+                example_data, field_name, field_info, example_value, depth
             )
 
     return example_data
@@ -182,67 +221,72 @@ def process_field_type(
     field_type: Any, field_info: FieldInfo, field_name: str, depth: int
 ) -> Any:
     """
-    Processes a field type and generates example data based on its type.
+    Processes a field type and generates example data accordingly.
+
+    :param field_type: The type of the field.
+    :param field_info: The FieldInfo object containing metadata.
+    :param field_name: The name of the field.
+    :param depth: Current depth for recursion.
+    :return: Generated example data or a PolymorphicExample.
     """
-    # Handle basic types
     if example := generate_basic_example(field_type, field_info):
         return example
 
-    # Step 1: Handle Annotated
     if get_origin(field_type) == Annotated:
-        annotated_type = get_args(field_type)[0]
+        return process_field_type(
+            get_args(field_type)[0], field_info, field_name, depth
+        )
 
-        # Process the unwrapped type
-        return process_field_type(annotated_type, field_info, field_name, depth)
-
-    # Handle Union and "... | ..."
     if get_origin(field_type) in (Union, UnionType):
         union_types = get_args(field_type)
+        primary_type, *other_types = union_types
 
-        # Generate example for the first type in the Union
-        primary_type = union_types[0]
         data = process_field_type(primary_type, field_info, field_name, depth)
-        if union_types[1:] == (NoneType,):
+        if other_types == [NoneType]:
             return data
 
-        other = [
-            process_field_type(type, field_info, field_name, 0)
-            for type in union_types[1:]
+        commented_out_examples = [
+            process_field_type(t, field_info, field_name, 0) for t in other_types
         ]
-        return PolymorphicExample(example=data, commented_out_examples=other)
+        return PolymorphicExample(
+            example=data, commented_out_examples=commented_out_examples
+        )
 
-    # Handle lists
     if get_origin(field_type) == list:
-        list_type = get_args(field_type)[0]
-        return [process_field_type(list_type, field_info, field_name, depth + 1)]
+        return [
+            process_field_type(
+                get_args(field_type)[0], field_info, field_name, depth + 1
+            )
+        ]
 
-    # Handle Pydantic models
     if isinstance(field_type, type) and issubclass(field_type, BaseModel):
-        return generate_model_example(field_type, depth=depth)
+        return generate_model_example(field_type, depth)
+
+    return None
 
 
 def generate_basic_example(field_type: Any, field_info: FieldInfo) -> Any:
     """
-    Generates a basic example for simple types like str, int, bool, etc.
+    Generates a basic example for primitive types.
+
+    :param field_type: The type of the field.
+    :param field_info: The FieldInfo object.
+    :return: A basic example value.
     """
     if field_info.examples:
         return field_info.examples[0]
-    elif default := get_default_from_field_info(field_info):
+    if default := get_default_from_field_info(field_info):
         return default
-    elif field_type == str:
-        return "example_string"
-    elif field_type == int:
-        return 123
-    elif field_type == bool:
-        return True
-    elif field_type == float:
-        return 123.45
-    elif field_type == list:
-        return []
-    elif field_type == dict:
-        return {}
-    else:
-        return None  # Placeholder for unsupported types
+
+    example_map = {
+        str: "example_string",
+        int: 123,
+        bool: True,
+        float: 123.45,
+        list: [],
+        dict: {},
+    }
+    return example_map.get(field_type, None)
 
 
 # Custom directive for generating a YAML example from a Pydantic model
