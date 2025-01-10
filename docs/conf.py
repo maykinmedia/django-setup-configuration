@@ -30,17 +30,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mock_settings")
 if not settings.configured:
     settings.configure(
         INSTALLED_APPS=[
-            "django.contrib.contenttypes",  # Required by Django models
             "django.contrib.sites",  # Required by Django models
-            "django_setup_configuration",  # Required by Django models
-            # Add minimal apps required by your library
         ],
-        DATABASES={
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": ":memory:",  # Use an in-memory database
-            }
-        },
     )
 
 django.setup()
