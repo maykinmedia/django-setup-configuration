@@ -6,6 +6,8 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import os
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -13,10 +15,35 @@
 import sys
 from pathlib import Path
 
+import django
+from django.conf import settings
+
 current_dir = Path(__file__).parents[1]
 code_directory = current_dir / "django_setup_configuration"
 
 sys.path.insert(0, str(code_directory))
+
+
+# Mock the Django settings
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mock_settings")
+
+if not settings.configured:
+    settings.configure(
+        INSTALLED_APPS=[
+            "django.contrib.contenttypes",  # Required by Django models
+            "django.contrib.sites",  # Required by Django models
+            "django_setup_configuration",  # Required by Django models
+            # Add minimal apps required by your library
+        ],
+        DATABASES={
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": ":memory:",  # Use an in-memory database
+            }
+        },
+    )
+
+django.setup()
 
 
 # -- Project information -----------------------------------------------------
@@ -37,6 +64,7 @@ release = "0.1.0"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
+    "django_setup_configuration.documentation.model_directive",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

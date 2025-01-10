@@ -9,6 +9,10 @@ from django_setup_configuration.exceptions import ConfigurationRunFailed
 
 
 class SitesConfigurationStep(BaseConfigurationStep):
+    """
+    This step configures one or more ``django.contrib.sites.Site`` objects
+    """
+
     config_model = SitesConfigurationModel
     verbose_name = "Sites configuration"
 
