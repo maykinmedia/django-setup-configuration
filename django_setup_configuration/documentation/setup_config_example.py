@@ -293,6 +293,9 @@ def _generate_basic_example(field_type: Any, field_info: FieldInfo) -> Any:
     ):
         return default
 
+    if get_origin(field_type) is Literal:
+        return get_args(field_type)[0]
+
     example_map = {
         str: "example_string",
         int: 123,

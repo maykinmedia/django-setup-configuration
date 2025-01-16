@@ -1,6 +1,6 @@
 import difflib
 import textwrap
-from typing import Union
+from typing import Literal, Union
 from unittest.mock import patch
 
 import pytest
@@ -67,6 +67,7 @@ class ConfigModel(ConfigurationModel):
     )
     union_of_primitives: Union[str, int] = Field()
     sequence_of_primitives: list[int] = Field()
+    literal: Literal["foo", "bar", "bar"] = Field()
 
     class Meta:
         django_model_refs = {
@@ -199,6 +200,10 @@ def test_directive_output(register_directive, docutils_document):
           # REQUIRED: True
           sequence_of_primitives:
             - 123
+
+          # POSSIBLE VALUES: ('foo', 'bar')
+          # REQUIRED: True
+          literal: foo
 
           # REQUIRED: True
           required_int: 1234
