@@ -1,13 +1,14 @@
 import difflib
 import textwrap
 from typing import Union
+from unittest.mock import patch
 
 import pytest
 from docutils import nodes
 from docutils.frontend import get_default_settings
 from docutils.parsers.rst import Parser, directives
 from docutils.utils import new_document
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.documentation.setup_config_example import (
@@ -61,6 +62,7 @@ class TestConfigModel(ConfigurationModel):
         description="union of models with |"
     )
     union_of_primitives: Union[str, int] = Field()
+    sequence_of_primitives: list[int] = Field()
 
     class Meta:
         django_model_refs = {
@@ -78,6 +80,18 @@ class TestConfigStep(BaseConfigurationStep[TestConfigModel]):
 
     namespace = "test_config"
     enable_setting = "test_config_enable"
+
+
+class UnsupportedConfigModel(ConfigurationModel):
+    list_of_primitive_and_complex: list[NestedConfigurationModel | str] = Field()
+
+
+class UnsupportedConfigStep(BaseConfigurationStep[UnsupportedConfigModel]):
+    config_model = UnsupportedConfigModel
+    verbose_name = "Unsupported Test config"
+
+    namespace = "unsupported_test_config"
+    enable_setting = "unsupported_test_config_enable"
 
 
 @pytest.fixture
@@ -99,8 +113,7 @@ def docutils_document():
     return document
 
 
-def test_my_directive_output(register_directive, docutils_document):
-    # Create a parser and simulate a directive
+def test_directive_output(register_directive, docutils_document):
     rst_content = """
     .. setup-config-example:: tests.test_documentation.TestConfigStep
     """
@@ -122,6 +135,7 @@ def test_my_directive_output(register_directive, docutils_document):
             - foo: bar
             - foo: baz
 
+          # DEFAULT VALUE: None
           # REQUIRED: False
           array_field:
             -
@@ -133,15 +147,16 @@ def test_my_directive_output(register_directive, docutils_document):
 
           # DESCRIPTION: union of models
           # REQUIRED: True
-          # This value is polymorphic, the possible values are divided by dashes
-          # and only one of them can be commented out.
-          # -------------OPTION 1-------------
+          # This field can have multiple different kinds of value. All the
+          # alternatives are listed below and are divided by dashes. Only **one of
+          # them** can be commented out.
+          # -------------ALTERNATIVE 1-------------
           # union_of_models:
           #   # DESCRIPTION: Nested description2
           #   # DEFAULT VALUE: 1
           #   # REQUIRED: False
           #   bar: 1234
-          # -------------OPTION 2-------------
+          # -------------ALTERNATIVE 2-------------
           union_of_models:
 
             # DESCRIPTION: Nested description
@@ -151,15 +166,16 @@ def test_my_directive_output(register_directive, docutils_document):
 
           # DESCRIPTION: union of models with |
           # REQUIRED: True
-          # This value is polymorphic, the possible values are divided by dashes
-          # and only one of them can be commented out.
-          # -------------OPTION 1-------------
+          # This field can have multiple different kinds of value. All the
+          # alternatives are listed below and are divided by dashes. Only **one of
+          # them** can be commented out.
+          # -------------ALTERNATIVE 1-------------
           # union_of_models2:
           #   # DESCRIPTION: Nested description2
           #   # DEFAULT VALUE: 1
           #   # REQUIRED: False
           #   bar: 1234
-          # -------------OPTION 2-------------
+          # -------------ALTERNATIVE 2-------------
           union_of_models2:
 
             # DESCRIPTION: Nested description
@@ -168,12 +184,17 @@ def test_my_directive_output(register_directive, docutils_document):
             foo: baz
 
           # REQUIRED: True
-          # This value is polymorphic, the possible values are divided by dashes
-          # and only one of them can be commented out.
-          # -------------OPTION 1-------------
+          # This field can have multiple different kinds of value. All the
+          # alternatives are listed below and are divided by dashes. Only **one of
+          # them** can be commented out.
+          # -------------ALTERNATIVE 1-------------
           # union_of_primitives: 123
-          # -------------OPTION 2-------------
+          # -------------ALTERNATIVE 2-------------
           union_of_primitives: example_string
+
+          # REQUIRED: True
+          sequence_of_primitives:
+            - 123
 
           # REQUIRED: True
           required_int: 1234
@@ -182,6 +203,7 @@ def test_my_directive_output(register_directive, docutils_document):
           # REQUIRED: False
           int_with_default: 42
 
+          # DEFAULT VALUE: None
           # REQUIRED: False
           nullable_and_blank_str: example_string
 
@@ -208,3 +230,38 @@ def test_my_directive_output(register_directive, docutils_document):
     assert len(result) == 1
     assert isinstance(result[0], nodes.block_quote)
     assert_example(result[0].astext(), expected)
+
+
+def test_directive_output_invalid_example_raises_error(
+    register_directive, docutils_document
+):
+    # The example for `TestConfigModel` will not be valid if every example is a string
+    with patch(
+        (
+            "django_setup_configuration.documentation."
+            "setup_config_example._generate_model_example"
+        ),
+        return_value="invalid",
+    ):
+        rst_content = """
+        .. setup-config-example:: tests.test_documentation.TestConfigStep
+        """
+
+        with pytest.raises(ValidationError):
+            # Parse the content, should raise a `ValidationError`
+            # because the example is incorrect
+            parser.parse(rst_content, docutils_document)
+
+
+def test_unsupported_fields(register_directive, docutils_document):
+    rst_content = """
+    .. setup-config-example:: tests.test_documentation.UnsupportedConfigStep
+    """
+
+    with pytest.raises(ValueError) as excinfo:
+        parser.parse(rst_content, docutils_document)
+
+    assert str(excinfo.value) == (
+        "Could not generate example for `list_of_primitive_and_complex`. "
+        "This directive does not support unions inside lists."
+    )
