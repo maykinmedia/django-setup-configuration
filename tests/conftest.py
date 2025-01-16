@@ -40,19 +40,19 @@ def _mock_execute(*args, **kwargs):
     pass
 
 
-class TestStepSubConfig(ConfigurationModel):
+class SubConfigModel(ConfigurationModel):
     another_foo: int
 
 
-class TestStepConfig(ConfigurationModel):
+class ConfigModel(ConfigurationModel):
     a_string: str
-    optional_sub_model: TestStepSubConfig | None = None
+    optional_sub_model: SubConfigModel | None = None
     username = DjangoModelRef(User, "username")
 
 
-class TestStep(BaseConfigurationStep[TestStepConfig]):
-    verbose_name = "TestStep"
-    config_model = TestStepConfig
+class ConfigStep(BaseConfigurationStep[ConfigModel]):
+    verbose_name = "ConfigStep"
+    config_model = ConfigModel
     namespace = "test_step"
     enable_setting = "test_step_is_enabled"
 
@@ -104,26 +104,26 @@ def test_step_disabled_yaml_path(yaml_file_factory, test_step_valid_config):
 
 @pytest.fixture()
 def runner(test_step_yaml_path):
-    return SetupConfigurationRunner(steps=[TestStep], yaml_source=test_step_yaml_path)
+    return SetupConfigurationRunner(steps=[ConfigStep], yaml_source=test_step_yaml_path)
 
 
 @pytest.fixture()
 def runner_with_invalid_yaml(test_step_bad_yaml_path):
     return SetupConfigurationRunner(
-        steps=[TestStep], yaml_source=test_step_bad_yaml_path
+        steps=[ConfigStep], yaml_source=test_step_bad_yaml_path
     )
 
 
 @pytest.fixture()
 def runner_with_step_disabled_yaml(test_step_disabled_yaml_path):
     return SetupConfigurationRunner(
-        steps=[TestStep], yaml_source=test_step_disabled_yaml_path
+        steps=[ConfigStep], yaml_source=test_step_disabled_yaml_path
     )
 
 
 @pytest.fixture()
 def runner_factory():
-    return functools.partial(SetupConfigurationRunner, steps=[TestStep])
+    return functools.partial(SetupConfigurationRunner, steps=[ConfigStep])
 
 
 @pytest.fixture()
@@ -134,7 +134,7 @@ def runner_step(runner):
 
 @pytest.fixture()
 def expected_step_config(test_step_valid_config):
-    return TestStepConfig.model_validate(test_step_valid_config["test_step"])
+    return ConfigModel.model_validate(test_step_valid_config["test_step"])
 
 
 @pytest.fixture()

@@ -16,7 +16,7 @@ from django_setup_configuration.documentation.setup_config_example import (
 )
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
-from testapp.models import TestModel
+from testapp.models import DjangoModel
 
 parser = Parser()
 
@@ -41,19 +41,23 @@ def assert_example(actual, expected):
     )
 
 
-class TestConfigModel(ConfigurationModel):
-    required_int = DjangoModelRef(TestModel, field_name="required_int", examples=[1234])
-    int_with_default = DjangoModelRef(TestModel, field_name="int_with_default")
-    nullable_and_blank_str = DjangoModelRef(
-        TestModel, field_name="nullable_and_blank_str"
+class ConfigModel(ConfigurationModel):
+    required_int = DjangoModelRef(
+        DjangoModel, field_name="required_int", examples=[1234]
     )
-    field_with_help_text = DjangoModelRef(TestModel, field_name="field_with_help_text")
+    int_with_default = DjangoModelRef(DjangoModel, field_name="int_with_default")
+    nullable_and_blank_str = DjangoModelRef(
+        DjangoModel, field_name="nullable_and_blank_str"
+    )
+    field_with_help_text = DjangoModelRef(
+        DjangoModel, field_name="field_with_help_text"
+    )
     # TODO is this positioned correctly within the result?
     array_field_with_default: list = DjangoModelRef(
-        TestModel, field_name="array_field_with_default"
+        DjangoModel, field_name="array_field_with_default"
     )
     array_field: list[NestedConfigurationModel] = DjangoModelRef(
-        TestModel, field_name="array_field"
+        DjangoModel, field_name="array_field"
     )
     union_of_models: Union[NestedConfigurationModel, NestedConfigurationModel2] = Field(
         description="union of models"
@@ -66,7 +70,7 @@ class TestConfigModel(ConfigurationModel):
 
     class Meta:
         django_model_refs = {
-            TestModel: (
+            DjangoModel: (
                 "str_with_choices_and_default",
                 "boolean_field",
                 "json_with_default_factory",
@@ -74,8 +78,8 @@ class TestConfigModel(ConfigurationModel):
         }
 
 
-class TestConfigStep(BaseConfigurationStep[TestConfigModel]):
-    config_model = TestConfigModel
+class ConfigStep(BaseConfigurationStep[ConfigModel]):
+    config_model = ConfigModel
     verbose_name = "Test config"
 
     namespace = "test_config"
@@ -115,7 +119,7 @@ def docutils_document():
 
 def test_directive_output(register_directive, docutils_document):
     rst_content = """
-    .. setup-config-example:: tests.test_documentation.TestConfigStep
+    .. setup-config-example:: tests.test_documentation.ConfigStep
     """
 
     # Parse the content
@@ -235,7 +239,7 @@ def test_directive_output(register_directive, docutils_document):
 def test_directive_output_invalid_example_raises_error(
     register_directive, docutils_document
 ):
-    # The example for `TestConfigModel` will not be valid if every example is a string
+    # The example for `ConfigModel` will not be valid if every example is a string
     with patch(
         (
             "django_setup_configuration.documentation."
@@ -244,7 +248,7 @@ def test_directive_output_invalid_example_raises_error(
         return_value="invalid",
     ):
         rst_content = """
-        .. setup-config-example:: tests.test_documentation.TestConfigStep
+        .. setup-config-example:: tests.test_documentation.ConfigStep
         """
 
         with pytest.raises(ValidationError):

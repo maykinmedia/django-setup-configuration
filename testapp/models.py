@@ -7,7 +7,7 @@ class StrChoices(models.TextChoices):
     bar = "bar", "Bar"
 
 
-class TestModel(models.Model):
+class DjangoModel(models.Model):
     required_int = models.IntegerField()
     int_with_default = models.IntegerField(default=42)
     nullable_int = models.IntegerField(null=True)

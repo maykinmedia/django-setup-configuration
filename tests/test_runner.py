@@ -10,13 +10,13 @@ from django_setup_configuration.runner import (
     StepExecutionResult,
 )
 from django_setup_configuration.test_utils import execute_single_step
-from tests.conftest import TestStep, TestStepConfig
+from tests.conftest import ConfigModel, ConfigStep
 
 
 def test_runner_raises_on_non_existent_step_module_path(test_step_yaml_path):
     with pytest.raises(ConfigurationException):
         SetupConfigurationRunner(
-            steps=[TestStep, "module.does.not.exist"], yaml_source=test_step_yaml_path
+            steps=[ConfigStep, "module.does.not.exist"], yaml_source=test_step_yaml_path
         )
 
 
@@ -26,14 +26,15 @@ def test_runner_raises_on_passing_invalid_step_class(test_step_yaml_path):
 
     with pytest.raises(ConfigurationException):
         SetupConfigurationRunner(
-            steps=[TestStep, NotABaseConfigurationStep], yaml_source=test_step_yaml_path
+            steps=[ConfigStep, NotABaseConfigurationStep],
+            yaml_source=test_step_yaml_path,
         )
 
 
 def test_runner_raises_on_non_existent_yaml_path():
     with pytest.raises(ConfigurationException):
         SetupConfigurationRunner(
-            steps=[TestStep], yaml_source="/does/not/exist/anywhere"
+            steps=[ConfigStep], yaml_source="/does/not/exist/anywhere"
         )
 
 
@@ -62,7 +63,7 @@ def test_validate_all_requirements_fails_on_bad_yaml(
 def test_execute_step_returns_correct_result(
     step_execute_mock, expected_step_config, runner_step, test_step_yaml_path
 ):
-    result = execute_single_step(TestStep, yaml_source=test_step_yaml_path)
+    result = execute_single_step(ConfigStep, yaml_source=test_step_yaml_path)
 
     assert result == StepExecutionResult(
         step=result.step,
@@ -71,7 +72,7 @@ def test_execute_step_returns_correct_result(
         run_exception=None,
         config_model=expected_step_config,
     )
-    assert type(result.step) is TestStep
+    assert type(result.step) is ConfigStep
     step_execute_mock.assert_called_once_with(expected_step_config)
 
 
@@ -91,7 +92,7 @@ def test_execute_all_returns_correct_results(
             config_model=expected_step_config,
         )
     ]
-    assert type(results[0].step) is TestStep
+    assert type(results[0].step) is ConfigStep
 
     step_execute_mock.assert_called_once_with(expected_step_config)
 
@@ -112,7 +113,7 @@ def test_exception_during_execute_step_is_included_in_result(
         run_exception=step_execute_mock.side_effect,
         config_model=expected_step_config,
     )
-    assert type(result.step) is TestStep
+    assert type(result.step) is ConfigStep
 
     step_execute_mock.assert_called_once_with(expected_step_config)
 
@@ -134,7 +135,7 @@ def test_exception_during_execute_all_is_included_in_result(
             config_model=expected_step_config,
         )
     ]
-    assert type(results[0].step) is TestStep
+    assert type(results[0].step) is ConfigStep
     step_execute_mock.assert_called_once_with(expected_step_config)
 
 
@@ -153,7 +154,7 @@ def test_disabled_steps_are_not_run(
         run_exception=None,
         config_model=None,
     )
-    assert type(result.step) is TestStep
+    assert type(result.step) is ConfigStep
     step_execute_mock.assert_not_called()
 
 
@@ -173,7 +174,7 @@ def test_disabled_steps_are_run_if_override_flag_is_provided(
         run_exception=None,
         config_model=expected_step_config,
     )
-    assert type(result.step) is TestStep
+    assert type(result.step) is ConfigStep
     step_execute_mock.assert_called_once_with(expected_step_config)
 
 
@@ -181,7 +182,7 @@ def test_settings_can_be_overriden_with_object(
     test_step_yaml_path, test_step_valid_config
 ):
     runner = SetupConfigurationRunner(
-        steps=[TestStep],
+        steps=[ConfigStep],
         yaml_source=test_step_yaml_path,
         object_source={
             "test_step": {
@@ -191,9 +192,7 @@ def test_settings_can_be_overriden_with_object(
     )
     (step,) = runner.configured_steps
 
-    assert runner._validate_requirements_for_step(
-        step
-    ) == TestStepConfig.model_validate(
+    assert runner._validate_requirements_for_step(step) == ConfigModel.model_validate(
         test_step_valid_config["test_step"]
         | {
             "username": "overriden username",

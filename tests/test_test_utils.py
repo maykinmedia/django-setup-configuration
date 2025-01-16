@@ -2,7 +2,7 @@ import pytest
 
 from django_setup_configuration.runner import StepExecutionResult
 from django_setup_configuration.test_utils import execute_single_step
-from tests.conftest import TestStep
+from tests.conftest import ConfigStep
 
 
 def test_exception_during_execute_step_is_immediately_raised(
@@ -12,7 +12,7 @@ def test_exception_during_execute_step_is_immediately_raised(
 ):
     step_execute_mock.side_effect = Exception("the error")
     with pytest.raises(Exception) as excinfo:
-        execute_single_step(TestStep, yaml_source=test_step_yaml_path)
+        execute_single_step(ConfigStep, yaml_source=test_step_yaml_path)
 
     assert str(excinfo.value) == "the error"
 
@@ -24,7 +24,7 @@ def test_execute_single_step_returns_result_if_no_exceptions(
     test_step_yaml_path,
     expected_step_config,
 ):
-    result = execute_single_step(TestStep, yaml_source=test_step_yaml_path)
+    result = execute_single_step(ConfigStep, yaml_source=test_step_yaml_path)
 
     assert result == StepExecutionResult(
         step=result.step,
@@ -33,7 +33,7 @@ def test_execute_single_step_returns_result_if_no_exceptions(
         run_exception=None,
         config_model=expected_step_config,
     )
-    assert isinstance(result.step, TestStep)
+    assert isinstance(result.step, ConfigStep)
 
     step_execute_mock.assert_called_once_with(expected_step_config)
 
@@ -44,7 +44,7 @@ def test_execute_single_step_ignores_enabled_setting(
     expected_step_config,
 ):
     result = execute_single_step(
-        TestStep,
+        ConfigStep,
         yaml_source=test_step_yaml_path,
         object_source={"test_step_is_enabled": False},
     )
@@ -56,5 +56,5 @@ def test_execute_single_step_ignores_enabled_setting(
         run_exception=None,
         config_model=expected_step_config,
     )
-    assert isinstance(result.step, TestStep)
+    assert isinstance(result.step, ConfigStep)
     step_execute_mock.assert_called_once_with(expected_step_config)
