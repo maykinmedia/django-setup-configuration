@@ -232,7 +232,7 @@ def process_field_type(
     if example := generate_basic_example(field_type, field_info):
         return example
 
-    if get_origin(field_type) == Annotated:
+    if get_origin(field_type) is Annotated:
         return process_field_type(
             get_args(field_type)[0], field_info, field_name, depth
         )
@@ -289,12 +289,14 @@ def generate_basic_example(field_type: Any, field_info: FieldInfo) -> Any:
     return example_map.get(field_type, None)
 
 
-# Custom directive for generating a YAML example from a Pydantic model
-class PydanticModelExampleDirective(Directive):
+class SetupConfigExampleDirective(Directive):
+    """
+    Directive to generate a YAML example for a given ConfigurationStep
+    """
+
     has_content = False
-    required_arguments = (
-        1  # Accept the full import path of the step class as an argument
-    )
+    # Accept the full import path of the step class as an argument
+    required_arguments = 1
 
     def run(self):
         step_class_path = self.arguments[0]
@@ -362,4 +364,4 @@ class PydanticModelExampleDirective(Directive):
 
 
 def setup(app):
-    app.add_directive("pydantic-model-example", PydanticModelExampleDirective)
+    app.add_directive("setup-config-example", SetupConfigExampleDirective)

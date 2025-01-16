@@ -10,8 +10,8 @@ from docutils.utils import new_document
 from pydantic import Field
 
 from django_setup_configuration.configuration import BaseConfigurationStep
-from django_setup_configuration.documentation.model_directive import (
-    PydanticModelExampleDirective,
+from django_setup_configuration.documentation.setup_config_example import (
+    SetupConfigExampleDirective,
 )
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
@@ -82,9 +82,7 @@ class TestConfigStep(BaseConfigurationStep[TestConfigModel]):
 
 @pytest.fixture
 def register_directive():
-    directives.register_directive(
-        "pydantic-model-example", PydanticModelExampleDirective
-    )
+    directives.register_directive("setup-config-example", SetupConfigExampleDirective)
 
 
 @pytest.fixture
@@ -104,7 +102,7 @@ def docutils_document():
 def test_my_directive_output(register_directive, docutils_document):
     # Create a parser and simulate a directive
     rst_content = """
-    .. pydantic-model-example:: tests.test_documentation.TestConfigStep
+    .. setup-config-example:: tests.test_documentation.TestConfigStep
     """
 
     # Parse the content
