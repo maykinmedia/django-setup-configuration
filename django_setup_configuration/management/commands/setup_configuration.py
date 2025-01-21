@@ -14,7 +14,10 @@ class Command(BaseCommand):
     help = (
         "Bootstrap the initial configuration of the application. "
         "This command is run only in non-interactive mode with settings "
-        "configured mainly via environment variables."
+        "configured mainly via environment variables. "
+        "This command is declarative - each step is idempotent, so it's safe to run "
+        "the command multiple times. The steps will overwrite any manual changes made "
+        "in the admin if you run the command after making these changes. "
     )
     output_transaction = True
 
