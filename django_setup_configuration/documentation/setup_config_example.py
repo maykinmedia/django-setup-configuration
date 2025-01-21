@@ -31,6 +31,28 @@ from django_setup_configuration.configuration import BaseConfigurationStep
 NO_EXAMPLE = object()
 
 
+def extract_literal_values(annotation: Type | None) -> list:
+    """
+    Checks if the given type annotation is a Literal or contains Literals.
+    If Literals are found, extracts all their values into a list.
+    """
+    if get_origin(annotation) == Literal:
+        # Direct Literal: Return True and its values
+        return [val for val in list(get_args(annotation)) if val != ""]
+
+    if get_origin(annotation) in {Union, tuple}:
+        # Union or composite type: Recursively check each argument
+        values = []
+        for arg in get_args(annotation):
+            arg_values = extract_literal_values(arg)
+            if arg_values:
+                values.extend(arg_values)
+        return values
+
+    # Not a Literal
+    return []
+
+
 @dataclass
 class PolymorphicExample:
     example: Any
@@ -107,21 +129,21 @@ def _insert_example_with_comments(
             indent=depth * 2,
         )
 
+    if values := extract_literal_values(field_info.annotation):
+        _yaml_set_wrapped_comment(
+            example_data,
+            field_name,
+            f"POSSIBLE VALUES: {json.dumps(values)}",
+            80,
+            indent=depth * 2,
+        )
+
     if (default := _get_default_from_field_info(field_info)) is not PydanticUndefined:
         if not (isinstance(example, str) and "\n" in example):
             default = json.dumps(default)
 
         example_data.yaml_set_comment_before_after_key(
             field_name, f"DEFAULT VALUE: {default}", indent=depth * 2
-        )
-
-    if get_origin(field_info.annotation) == Literal:
-        _yaml_set_wrapped_comment(
-            example_data,
-            field_name,
-            f"POSSIBLE VALUES: {json.dumps(get_args(field_info.annotation))}",
-            80,
-            indent=depth * 2,
         )
 
     example_data.yaml_set_comment_before_after_key(
@@ -300,11 +322,12 @@ def _generate_basic_example(field_type: Any, field_info: FieldInfo) -> Any:
         PydanticUndefined,
         None,
         [],
+        "",
     ):
         return default
 
-    if get_origin(field_type) is Literal:
-        return get_args(field_type)[0]
+    if values := extract_literal_values(field_type):
+        return values[0]
 
     example_map = {
         str: "example_string",

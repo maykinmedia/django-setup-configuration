@@ -77,6 +77,7 @@ class ConfigModel(ConfigurationModel):
                 "boolean_field",
                 "json_with_default_factory",
                 "nullable_str",
+                "int_with_choices_and_blank_and_non_choice_default",
             )
         }
         extra_kwargs = {
@@ -236,8 +237,8 @@ def test_directive_output(register_directive, docutils_document):
           # REQUIRED: true
           field_with_help_text: 123
 
-          # DEFAULT VALUE: "bar"
           # POSSIBLE VALUES: ["foo", "bar"]
+          # DEFAULT VALUE: "bar"
           # REQUIRED: false
           str_with_choices_and_default: bar
 
@@ -253,6 +254,11 @@ def test_directive_output(register_directive, docutils_document):
           # DEFAULT VALUE: null
           # REQUIRED: false
           nullable_str: example string via extra kwargs
+
+          # POSSIBLE VALUES: [1, 8, 42]
+          # DEFAULT VALUE: 42
+          # REQUIRED: false
+          int_with_choices_and_blank_and_non_choice_default: 42
     """
     )
 
