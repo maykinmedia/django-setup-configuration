@@ -76,7 +76,11 @@ class ConfigModel(ConfigurationModel):
                 "str_with_choices_and_default",
                 "boolean_field",
                 "json_with_default_factory",
+                "nullable_str",
             )
+        }
+        extra_kwargs = {
+            "nullable_str": {"examples": ["example string via extra kwargs"]}
         }
 
 
@@ -245,6 +249,10 @@ def test_directive_output(register_directive, docutils_document):
           # REQUIRED: false
           json_with_default_factory:
             foo: bar
+
+          # DEFAULT VALUE: null
+          # REQUIRED: false
+          nullable_str: example string via extra kwargs
     """
     )
 
