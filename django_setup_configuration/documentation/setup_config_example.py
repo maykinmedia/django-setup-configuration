@@ -1,5 +1,6 @@
 import importlib
 import io
+import json
 import textwrap
 from dataclasses import dataclass
 from enum import Enum
@@ -107,6 +108,9 @@ def _insert_example_with_comments(
         )
 
     if (default := _get_default_from_field_info(field_info)) is not PydanticUndefined:
+        if not (isinstance(example, str) and "\n" in example):
+            default = json.dumps(default)
+
         example_data.yaml_set_comment_before_after_key(
             field_name, f"DEFAULT VALUE: {default}", indent=depth * 2
         )
@@ -115,13 +119,15 @@ def _insert_example_with_comments(
         _yaml_set_wrapped_comment(
             example_data,
             field_name,
-            f"POSSIBLE VALUES: {get_args(field_info.annotation)}",
+            f"POSSIBLE VALUES: {json.dumps(get_args(field_info.annotation))}",
             80,
             indent=depth * 2,
         )
 
     example_data.yaml_set_comment_before_after_key(
-        field_name, f"REQUIRED: {field_info.is_required()}", indent=depth * 2
+        field_name,
+        f"REQUIRED: {json.dumps(field_info.is_required())}",
+        indent=depth * 2,
     )
 
 

@@ -135,24 +135,24 @@ def test_directive_output(register_directive, docutils_document):
         test_config_enable: true
         test_config:
 
-          # DEFAULT VALUE: [{'foo': 'bar'}, {'foo': 'baz'}]
-          # REQUIRED: False
+          # DEFAULT VALUE: [{"foo": "bar"}, {"foo": "baz"}]
+          # REQUIRED: false
           array_field_with_default:
             - foo: bar
             - foo: baz
 
-          # DEFAULT VALUE: None
-          # REQUIRED: False
+          # DEFAULT VALUE: null
+          # REQUIRED: false
           array_field:
             -
 
               # DESCRIPTION: Nested description
-              # DEFAULT VALUE: bar
-              # REQUIRED: False
+              # DEFAULT VALUE: "bar"
+              # REQUIRED: false
               foo: baz
 
           # DESCRIPTION: union of models
-          # REQUIRED: True
+          # REQUIRED: true
           # This field can have multiple different kinds of value. All the
           # alternatives are listed below and are divided by dashes. Only **one of
           # them** can be commented out.
@@ -160,18 +160,18 @@ def test_directive_output(register_directive, docutils_document):
           # union_of_models:
           #   # DESCRIPTION: Nested description2
           #   # DEFAULT VALUE: 1
-          #   # REQUIRED: False
+          #   # REQUIRED: false
           #   bar: 1234
           # -------------ALTERNATIVE 2-------------
           union_of_models:
 
             # DESCRIPTION: Nested description
-            # DEFAULT VALUE: bar
-            # REQUIRED: False
+            # DEFAULT VALUE: "bar"
+            # REQUIRED: false
             foo: baz
 
           # DESCRIPTION: union of models with |
-          # REQUIRED: True
+          # REQUIRED: true
           # This field can have multiple different kinds of value. All the
           # alternatives are listed below and are divided by dashes. Only **one of
           # them** can be commented out.
@@ -179,17 +179,17 @@ def test_directive_output(register_directive, docutils_document):
           # union_of_models2:
           #   # DESCRIPTION: Nested description2
           #   # DEFAULT VALUE: 1
-          #   # REQUIRED: False
+          #   # REQUIRED: false
           #   bar: 1234
           # -------------ALTERNATIVE 2-------------
           union_of_models2:
 
             # DESCRIPTION: Nested description
-            # DEFAULT VALUE: bar
-            # REQUIRED: False
+            # DEFAULT VALUE: "bar"
+            # REQUIRED: false
             foo: baz
 
-          # REQUIRED: True
+          # REQUIRED: true
           # This field can have multiple different kinds of value. All the
           # alternatives are listed below and are divided by dashes. Only **one of
           # them** can be commented out.
@@ -198,51 +198,51 @@ def test_directive_output(register_directive, docutils_document):
           # -------------ALTERNATIVE 2-------------
           union_of_primitives: example_string
 
-          # REQUIRED: True
+          # REQUIRED: true
           sequence_of_primitives:
             - 123
 
-          # POSSIBLE VALUES: ('foo', 'bar')
-          # REQUIRED: True
+          # POSSIBLE VALUES: ["foo", "bar"]
+          # REQUIRED: true
           literal: foo
 
           # DEFAULT VALUE: {
           #   "foo":"bar",
           #   "bar":"baz"
           # }
-          # REQUIRED: False
+          # REQUIRED: false
           literal_block_scalar: |-
             {
               "foo":"bar",
               "bar":"baz"
             }
 
-          # REQUIRED: True
+          # REQUIRED: true
           required_int: 1234
 
           # DEFAULT VALUE: 42
-          # REQUIRED: False
+          # REQUIRED: false
           int_with_default: 42
 
-          # DEFAULT VALUE: None
-          # REQUIRED: False
+          # DEFAULT VALUE: null
+          # REQUIRED: false
           nullable_and_blank_str: example_string
 
           # DESCRIPTION: This is the help text
-          # REQUIRED: True
+          # REQUIRED: true
           field_with_help_text: 123
 
-          # DEFAULT VALUE: bar
-          # POSSIBLE VALUES: ('foo', 'bar')
-          # REQUIRED: False
+          # DEFAULT VALUE: "bar"
+          # POSSIBLE VALUES: ["foo", "bar"]
+          # REQUIRED: false
           str_with_choices_and_default: bar
 
-          # DEFAULT VALUE: True
-          # REQUIRED: False
+          # DEFAULT VALUE: true
+          # REQUIRED: false
           boolean_field: true
 
-          # DEFAULT VALUE: {'foo': 'bar'}
-          # REQUIRED: False
+          # DEFAULT VALUE: {"foo": "bar"}
+          # REQUIRED: false
           json_with_default_factory:
             foo: bar
     """
