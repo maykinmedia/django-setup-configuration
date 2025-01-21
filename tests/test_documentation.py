@@ -68,6 +68,7 @@ class ConfigModel(ConfigurationModel):
     union_of_primitives: Union[str, int] = Field()
     sequence_of_primitives: list[int] = Field()
     literal: Literal["foo", "bar", "bar"] = Field()
+    literal_block_scalar: str = Field(default='{\n  "foo":"bar",\n  "bar":"baz"\n}')
 
     class Meta:
         django_model_refs = {
@@ -204,6 +205,17 @@ def test_directive_output(register_directive, docutils_document):
           # POSSIBLE VALUES: ('foo', 'bar')
           # REQUIRED: True
           literal: foo
+
+          # DEFAULT VALUE: {
+          #   "foo":"bar",
+          #   "bar":"baz"
+          # }
+          # REQUIRED: False
+          literal_block_scalar: |-
+            {
+              "foo":"bar",
+              "bar":"baz"
+            }
 
           # REQUIRED: True
           required_int: 1234

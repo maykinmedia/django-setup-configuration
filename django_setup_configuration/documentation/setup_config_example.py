@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.scalarstring import LiteralScalarString
 
 from django_setup_configuration.configuration import BaseConfigurationStep
 
@@ -90,6 +91,9 @@ def _insert_example_with_comments(
     :param example: The example value to insert.
     :param depth: Current depth for indentation.
     """
+    if isinstance(example, str) and "\n" in example:
+        example = LiteralScalarString(example)
+
     example_data[field_name] = example
     example_data.yaml_set_comment_before_after_key(field_name, before="\n")
 
