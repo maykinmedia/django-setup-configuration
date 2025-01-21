@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 
@@ -6,7 +7,7 @@ class StrChoices(models.TextChoices):
     bar = "bar", "Bar"
 
 
-class TestModel(models.Model):
+class DjangoModel(models.Model):
     required_int = models.IntegerField()
     int_with_default = models.IntegerField(default=42)
     nullable_int = models.IntegerField(null=True)
@@ -52,3 +53,10 @@ class TestModel(models.Model):
     int_with_choices_callable = models.IntegerField(
         choices=lambda: ((1, "FOO"), (8, "BAR"))
     )
+
+    boolean_field = models.BooleanField(default=True)
+    json_with_default_factory = models.JSONField(default=lambda: {"foo": "bar"})
+    array_field_with_default = ArrayField(
+        models.JSONField(), default=lambda: [{"foo": "bar"}, {"foo": "baz"}]
+    )
+    array_field = ArrayField(models.JSONField(), null=True, blank=True)

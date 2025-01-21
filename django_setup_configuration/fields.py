@@ -138,6 +138,9 @@ class DjangoModelRefInfo(FieldInfo):
             "validate_return"
         ] = validate_defaults
 
+        if examples := kwargs.get("examples"):
+            field_info_creation_kwargs["examples"] = examples
+
         return super().__init__(**field_info_creation_kwargs)
 
     @staticmethod

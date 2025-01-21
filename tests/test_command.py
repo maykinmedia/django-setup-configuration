@@ -8,14 +8,16 @@ import pytest
 
 from django_setup_configuration.test_utils import build_step_config_from_sources
 from testapp.configuration import UserConfigurationModel, UserConfigurationStep
-from tests.conftest import TestStep
+from tests.conftest import ConfigStep
 
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
 def include_test_step(settings):
-    settings.SETUP_CONFIGURATION_STEPS = settings.SETUP_CONFIGURATION_STEPS + [TestStep]
+    settings.SETUP_CONFIGURATION_STEPS = settings.SETUP_CONFIGURATION_STEPS + [
+        ConfigStep
+    ]
 
 
 @pytest.fixture()
@@ -134,14 +136,14 @@ def test_command_success(
         f"Loading config settings from {yaml_file_with_valid_configuration}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [enabled]",
         "",
         "Validating requirements...",
         "Valid configuration settings found for all steps.",
         "",
         "Executing steps...",
         "    Successfully executed step: User Configuration",
-        "    Successfully executed step: TestStep",
+        "    Successfully executed step: ConfigStep",
         "",
         "Configuration completed.",
     ]
@@ -178,7 +180,7 @@ def test_command_success_with_validate_only_flag_does_not_run(
         f"Loading config settings from {yaml_file_with_valid_configuration}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [enabled]",
         "",
         "Validating requirements...",
         "Valid configuration settings found for all steps.",
@@ -234,7 +236,7 @@ def test_command_with_failing_requirements_reports_errors(
         "      Field required [type=missing, input_value={'username': 1874}, input_type=dict]",
         f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/missing",
         "",
-        'Invalid configuration settings for step "TestStep":',
+        'Invalid configuration settings for step "ConfigStep":',
         "    2 validation errors for ConfigSettingsSourceTest_step",
         "    test_step.a_string",
         "      Input should be a valid string [type=string_type, input_value=42, input_type=int]",
@@ -252,7 +254,7 @@ def test_command_with_failing_requirements_reports_errors(
         f"Loading config settings from {yaml_path}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [enabled]",
         "",
         "Validating requirements...",
     ]
@@ -307,7 +309,7 @@ def test_command_with_failing_requirements_and_validate_reports_errors(
         "      Field required [type=missing, input_value={'username': 1874}, input_type=dict]",
         f"        For further information visit https://errors.pydantic.dev/{pydantic_version}/v/missing",
         "",
-        'Invalid configuration settings for step "TestStep":',
+        'Invalid configuration settings for step "ConfigStep":',
         "    2 validation errors for ConfigSettingsSourceTest_step",
         "    test_step.a_string",
         "      Input should be a valid string [type=string_type, input_value=42, input_type=int]",
@@ -325,7 +327,7 @@ def test_command_with_failing_requirements_and_validate_reports_errors(
         f"Loading config settings from {yaml_path}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [enabled]",
         "",
         "Validating requirements...",
     ]
@@ -362,7 +364,7 @@ def test_command_with_failing_execute_reports_errors(
         f"Loading config settings from {yaml_file_with_valid_configuration}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [enabled]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [enabled]",
         "",
         "Validating requirements...",
         "Valid configuration settings found for all steps.",
@@ -376,7 +378,7 @@ def test_command_with_failing_execute_reports_errors(
 
     output = stderr.getvalue().splitlines()
     expected_output = [
-        "Error while executing step `TestStep`",
+        "Error while executing step `ConfigStep`",
         "    Something went wrong",
     ]
 
@@ -421,7 +423,7 @@ def test_command_aborts_on_no_enabled_steps(step_execute_mock, yaml_file_factory
         f"Loading config settings from {yaml_path}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [***disabled***]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [***disabled***]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [***disabled***]",
     ]
     # flake8: qa: E501
 
@@ -461,9 +463,9 @@ def test_command_with_disabled_and_enabled_steps_lists_the_disabled_steps(
         f"Loading config settings from {yaml_path}",
         "The following steps are configured:",
         "    User Configuration from <class 'testapp.configuration.UserConfigurationStep'> [enabled]",
-        "    TestStep from <class 'tests.conftest.TestStep'> [***disabled***]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [***disabled***]",
         "The following steps will be skipped because they are disabled:",
-        "    TestStep from <class 'tests.conftest.TestStep'> [test_step_is_enabled = false]",
+        "    ConfigStep from <class 'tests.conftest.ConfigStep'> [test_step_is_enabled = false]",
         "",
         "Validating requirements...",
         "Valid configuration settings found for all steps.",

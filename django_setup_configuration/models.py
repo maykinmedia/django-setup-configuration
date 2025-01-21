@@ -31,14 +31,16 @@ class DjangoRefsMetaclass(BaseModel.__class__):  # type: ignore
         annotations = namespace.setdefault("__annotations__", {})
 
         if meta := namespace.get("Meta", None):
+            extra_kwargs = getattr(meta, "extra_kwargs", {})
             if django_model_refs := getattr(meta, "django_model_refs", None):
                 if not isinstance(django_model_refs, dict):
                     raise ValueError("`django_model_refs` must be a dict")
 
                 for model_cls, fields in django_model_refs.items():
                     for field in fields:
+                        field_kwargs = extra_kwargs.get(field, {})
                         namespace[field] = DjangoModelRef(
-                            get_model_from_ref(model_cls), field
+                            get_model_from_ref(model_cls), field, **field_kwargs
                         )
 
         for key, value in namespace.items():
