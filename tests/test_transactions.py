@@ -6,7 +6,7 @@ import pytest
 
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.models import ConfigurationModel
-from tests.conftest import TestStep
+from tests.conftest import ConfigStep
 
 pytestmark = pytest.mark.django_db
 
@@ -50,7 +50,7 @@ def test_runner_rolls_back_all_on_failing_step(
     runner_factory, valid_config_object, step_execute_mock
 ):
     runner = runner_factory(
-        steps=[TransactionTestConfigurationStep, TestStep],
+        steps=[TransactionTestConfigurationStep, ConfigStep],
         object_source=valid_config_object,
     )
     exc = Exception()
@@ -83,7 +83,7 @@ def test_runner_rolls_back_on_executing_single_step(
     runner_factory, valid_config_object
 ):
     runner = runner_factory(
-        steps=[TransactionTestConfigurationStep, TestStep],
+        steps=[TransactionTestConfigurationStep, ConfigStep],
         object_source=valid_config_object,
     )
     with mock.patch("tests.test_transactions.side_effect_test_func") as m:
