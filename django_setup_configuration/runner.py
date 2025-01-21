@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 from django.conf import settings
+from django.db import transaction
 from django.utils.module_loading import import_string
 
 from pydantic import ValidationError
@@ -160,7 +161,8 @@ class SetupConfigurationRunner:
         step_exc = None
 
         try:
-            step.execute(config_model)
+            with transaction.atomic():
+                step.execute(config_model)
         except BaseException as exc:
             step_exc = exc
         finally:
@@ -216,8 +218,27 @@ class SetupConfigurationRunner:
             Generator[StepExecutionResult, Any, None]: The results of each step's
                 execution.
         """
-        for step in self.enabled_steps:
-            yield self._execute_step(step)
+
+        # Not the most elegant approach to rollbacks, but it's preferable to the
+        # pitfalls of manual transaction management. We want all steps to run and only
+        # rollback at the end, hence intra-step exceptions are caught and persisted.
+        class Rollback(BaseException):
+            pass
+
+        try:
+            with transaction.atomic():
+                results = []
+                for step in self.enabled_steps:
+                    result = self._execute_step(step)
+                    results.append(result)
+
+                if any(result.run_exception for result in results):
+                    raise Rollback  # Trigger the rollback
+        except Rollback:
+            pass
+
+        for result in results:
+            yield result
 
     def execute_all(self) -> list[StepExecutionResult]:
         """

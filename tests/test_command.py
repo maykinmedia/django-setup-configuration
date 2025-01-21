@@ -482,3 +482,50 @@ def test_command_with_disabled_and_enabled_steps_lists_the_disabled_steps(
 
     assert User.objects.count() == 1
     step_execute_mock.assert_not_called()
+
+
+@pytest.fixture()
+def valid_config_object(test_step_valid_config):
+    return {
+        "transaction_test_configuration_enabled": True,
+        "transaction_test_configuration": {"username": "alice"},
+    } | test_step_valid_config
+
+
+def test_command_rolls_back_all_on_failing_step(
+    yaml_file_with_valid_configuration, step_execute_mock
+):
+    exc = Exception()
+    step_execute_mock.side_effect = exc
+
+    assert User.objects.count() == 0
+    stdout, stderr = StringIO(), StringIO()
+
+    with pytest.raises(CommandError) as excinfo:
+        call_command(
+            "setup_configuration",
+            yaml_file=yaml_file_with_valid_configuration,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+    assert (
+        str(excinfo.value)
+        == "Aborting run due to a failed step. All database changes have been rolled back."
+    )
+    step_execute_mock.assert_called_once()
+
+    # Initial run is rolled back, so no objects created
+    assert User.objects.count() == 0
+
+    # Subsequent run does not raise, so the objects are created
+    step_execute_mock.side_effect = None
+
+    call_command(
+        "setup_configuration",
+        yaml_file=yaml_file_with_valid_configuration,
+        stdout=stdout,
+        stderr=stderr,
+    )
+    assert User.objects.count() == 1
+    assert step_execute_mock.call_count == 2

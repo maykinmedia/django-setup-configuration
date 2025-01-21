@@ -3,7 +3,6 @@ import textwrap
 from pathlib import Path
 
 from django.core.management import BaseCommand, CommandError
-from django.db import transaction
 
 from django_setup_configuration.exceptions import ValidateRequirementsFailure
 from django_setup_configuration.runner import SetupConfigurationRunner
@@ -34,7 +33,6 @@ class Command(BaseCommand):
             "from source, without actually executing the steps.",
         )
 
-    @transaction.atomic
     def handle(self, **options):
         validate_only = options["validate_only"]
         yaml_file = Path(options["yaml_file"]).resolve()
