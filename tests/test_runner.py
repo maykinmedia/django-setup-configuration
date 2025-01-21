@@ -213,7 +213,7 @@ def test_yaml_source_can_be_string_or_path_like(
     step_execute_mock, expected_step_config, path_factory, test_step_yaml_path
 ):
     result = execute_single_step(
-        TestStep, yaml_source=path_factory(test_step_yaml_path)
+        ConfigStep, yaml_source=path_factory(test_step_yaml_path)
     )
 
     assert result == StepExecutionResult(
@@ -223,5 +223,5 @@ def test_yaml_source_can_be_string_or_path_like(
         run_exception=None,
         config_model=expected_step_config,
     )
-    assert type(result.step) is TestStep
+    assert type(result.step) is ConfigStep
     step_execute_mock.assert_called_once_with(expected_step_config)
