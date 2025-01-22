@@ -1,5 +1,7 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.utils.functional import lazy
+from django.utils.translation import gettext_lazy as _
 
 
 class StrChoices(models.TextChoices):
@@ -60,3 +62,7 @@ class DjangoModel(models.Model):
         models.JSONField(), default=lambda: [{"foo": "bar"}, {"foo": "baz"}]
     )
     array_field = ArrayField(models.JSONField(), null=True, blank=True)
+    str_with_localized_default = models.TextField(default=_("Localized default"))
+    int_with_lazy_default = models.IntegerField(
+        default=lazy(lambda: 42, int)(), verbose_name="int with lazy default"
+    )

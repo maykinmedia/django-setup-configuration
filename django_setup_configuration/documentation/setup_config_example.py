@@ -17,6 +17,8 @@ from typing import (
     get_origin,
 )
 
+from django.utils.functional import Promise
+
 import ruamel.yaml
 from docutils import nodes
 from docutils.parsers.rst import Directive
@@ -68,11 +70,16 @@ def _get_default_from_field_info(field_info: FieldInfo) -> Any:
     """
     if field_info.default_factory:
         return field_info.default_factory()
-    return (
-        field_info.default.value
-        if isinstance(field_info.default, Enum)
-        else field_info.default
-    )
+
+    match field_info.default:
+        case Promise():
+            # Effectively a callable -- call the lazy function, e.g. gettext(), so we're
+            # left with a simple value, not a complex object which is hard to serialize
+            return field_info.default._proxy____cast()
+        case Enum():
+            return field_info.default.value
+        case _:
+            return field_info.default
 
 
 def _yaml_set_wrapped_comment(
