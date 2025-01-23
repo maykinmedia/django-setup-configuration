@@ -1,4 +1,5 @@
 import functools
+from pathlib import Path
 from unittest import mock
 
 from django.contrib.auth.models import User
@@ -11,6 +12,13 @@ from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
 from django_setup_configuration.runner import SetupConfigurationRunner
 from testapp.configuration import BaseConfigurationStep
+
+pytest_plugins = ("sphinx.testing.fixtures",)
+
+
+@pytest.fixture(scope="session")
+def rootdir() -> Path:
+    return Path(__file__).resolve().parent / "sphinx-roots"
 
 
 @pytest.fixture
