@@ -2,6 +2,26 @@
 Changelog
 =========
 
+0.6.0 (2025-01-23)
+==================
+
+**New features**
+
+* Add a ``validate-only`` flag to support web-init/CI usage
+* [#45] Sphinx directive to generate YAML examples for config models
+
+**Bugfixes and QoL changes**
+
+* [#31] Bypass validation of defaults for Django fields containing choices
+* [#39] Make command output clearer and less opaque
+* [#29] Accept Path objects for YAML files
+* [#42] Handle Site creation in SitesConfigurationStep when no Sites models
+* [#37] Explicitly handle transactions in the runner
+
+**Documentation**
+
+* [#49] Add documentation for ``setup_configuration`` command usage
+
 0.5.0 (2024-12-13)
 ==================
 
