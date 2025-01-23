@@ -80,6 +80,7 @@ class ConfigModel(ConfigurationModel):
                 "int_with_choices_and_blank_and_non_choice_default",
                 "str_with_localized_default",
                 "int_with_lazy_default",
+                "blank_str",
             )
         }
         extra_kwargs = {
@@ -269,6 +270,10 @@ def test_directive_output(register_directive, docutils_document):
           # DEFAULT VALUE: 42
           # REQUIRED: false
           int_with_lazy_default: 42
+
+          # DEFAULT VALUE: ""
+          # REQUIRED: false
+          blank_str: example_string
     """
     )
 

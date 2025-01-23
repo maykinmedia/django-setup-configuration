@@ -284,7 +284,7 @@ def _process_field_type(
         primary_type, *other_types = union_types
 
         data = _process_field_type(primary_type, field_info, field_name, depth)
-        if other_types == [NoneType]:
+        if all(union_type in (NoneType, Literal[""]) for union_type in other_types):
             return data
 
         commented_out_examples = [
