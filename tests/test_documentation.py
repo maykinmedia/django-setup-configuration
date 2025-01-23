@@ -78,6 +78,8 @@ class ConfigModel(ConfigurationModel):
                 "json_with_default_factory",
                 "nullable_str",
                 "int_with_choices_and_blank_and_non_choice_default",
+                "str_with_localized_default",
+                "int_with_lazy_default",
             )
         }
         extra_kwargs = {
@@ -259,6 +261,14 @@ def test_directive_output(register_directive, docutils_document):
           # DEFAULT VALUE: 42
           # REQUIRED: false
           int_with_choices_and_blank_and_non_choice_default: 42
+
+          # DEFAULT VALUE: "Localized default"
+          # REQUIRED: false
+          str_with_localized_default: Localized default
+
+          # DEFAULT VALUE: 42
+          # REQUIRED: false
+          int_with_lazy_default: 42
     """
     )
 
