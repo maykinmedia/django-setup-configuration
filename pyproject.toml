@@ -52,7 +52,8 @@ tests = [
     "isort",
     "black",
     "flake8",
-    "python-decouple"
+    "python-decouple",
+    "sphinx"
 ]
 coverage = [
     "pytest-cov",

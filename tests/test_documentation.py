@@ -1,6 +1,8 @@
 import difflib
 import textwrap
+from pathlib import Path
 from typing import Literal, Union
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -14,11 +16,12 @@ from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.documentation.setup_config_example import (
     SetupConfigExampleDirective,
 )
+from django_setup_configuration.documentation.setup_config_usage import (
+    SetupConfigUsageDirective,
+)
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
 from testapp.models import DjangoModel
-
-parser = Parser()
 
 
 class NestedConfigurationModel(ConfigurationModel):
@@ -108,12 +111,18 @@ class UnsupportedConfigStep(BaseConfigurationStep[UnsupportedConfigModel]):
     enable_setting = "unsupported_test_config_enable"
 
 
-@pytest.fixture
+@pytest.fixture()
+def parser():
+    return Parser()
+
+
+@pytest.fixture()
 def register_directive():
     directives.register_directive("setup-config-example", SetupConfigExampleDirective)
+    directives.register_directive("setup-config-usage", SetupConfigUsageDirective)
 
 
-@pytest.fixture
+@pytest.fixture()
 def docutils_document():
     """Fixture to create a new docutils document with complete settings."""
     settings = get_default_settings()
@@ -127,7 +136,8 @@ def docutils_document():
     return document
 
 
-def test_directive_output(register_directive, docutils_document):
+@pytest.mark.usefixtures("register_directive")
+def test_directive_output(parser, docutils_document):
     rst_content = """
     .. setup-config-example:: tests.test_documentation.ConfigStep
     """
@@ -282,9 +292,8 @@ def test_directive_output(register_directive, docutils_document):
     assert_example(result[0].astext(), expected)
 
 
-def test_directive_output_invalid_example_raises_error(
-    register_directive, docutils_document
-):
+@pytest.mark.usefixtures("register_directive")
+def test_directive_output_invalid_example_raises_error(parser, docutils_document):
     # The example for `ConfigModel` will not be valid if every example is a string
     with patch(
         (
@@ -303,7 +312,8 @@ def test_directive_output_invalid_example_raises_error(
             parser.parse(rst_content, docutils_document)
 
 
-def test_unsupported_fields(register_directive, docutils_document):
+@pytest.mark.usefixtures("register_directive")
+def test_unsupported_fields(parser, docutils_document):
     rst_content = """
     .. setup-config-example:: tests.test_documentation.UnsupportedConfigStep
     """
@@ -314,4 +324,106 @@ def test_unsupported_fields(register_directive, docutils_document):
     assert str(excinfo.value) == (
         "Could not generate example for `list_of_primitive_and_complex`. "
         "This directive does not support unions inside lists."
+    )
+
+
+@pytest.mark.usefixtures("register_directive")
+def test_usage_directive_output_is_parseable(parser, docutils_document):
+    rst_content = """
+    .. setup-config-usage::
+    """
+    parser.parse(rst_content, docutils_document)
+
+
+@pytest.mark.sphinx("html", testroot="usage-directive")
+@pytest.mark.parametrize(
+    "enabled_options,disabled_options",
+    [
+        pytest.param(set(), set(), id="complete"),
+        pytest.param(
+            set(),
+            {"show_steps"},
+            id="steps_fully_disabled",
+        ),
+        pytest.param(
+            set(),
+            {"show_steps_toc"},
+            id="steps_toc_disabled",
+        ),
+        pytest.param(
+            set(),
+            {"show_steps_autodoc"},
+            id="steps_autodoc_disabled",
+        ),
+        pytest.param(
+            {"show_steps_toc"},
+            {"show_steps"},
+            id="steps_disabled_toc_enabled",
+        ),
+    ],
+)
+def test_usage_directive_outputs_expected_html_with_sphinx(
+    app, disabled_options, enabled_options, request
+):
+    # Build the rst with options
+    rst = ".. setup-config-usage::\n"
+    for enabled_option in enabled_options:
+        rst += f"    :{enabled_option}: true\n"
+
+    for disabled_option in disabled_options:
+        rst += f"    :{disabled_option}: false\n"
+
+    # Run Sphinx
+    (app.srcdir / "index.rst").write_text(rst)
+    app.build()
+
+    # Validate
+    content = (app.outdir / "index.html").read_text(encoding="utf8")
+    expected_html = (
+        Path(__file__).parent
+        / "fixtures"
+        / f"usage_directive_html_{request.node.callspec.id}.html"
+    ).read_text()
+
+    assert expected_html in content
+
+
+@pytest.mark.usefixtures("register_directive")
+@mock.patch(
+    "django_setup_configuration.documentation.setup_config_usage."
+    "SetupConfigUsageDirective._get_django_settings"
+)
+def test_usage_directive_output_with_no_settings_module_raises(
+    m, parser, docutils_document
+):
+    rst_content = """
+    .. setup-config-usage::
+    """
+
+    m.return_value = {}
+    with pytest.raises(ValueError) as excinfo:
+        parser.parse(rst_content, docutils_document)
+
+    assert (
+        str(excinfo.value)
+        == "Unable to load Django settings. Is DJANGO_SETTINGS_MODULE set?"
+    )
+
+
+@pytest.mark.usefixtures("register_directive")
+@mock.patch(
+    "django_setup_configuration.documentation.setup_config_usage."
+    "SetupConfigUsageDirective._get_django_settings"
+)
+def test_usage_directive_output_with_missing_steps_raises(m, parser, docutils_document):
+    rst_content = """
+    .. setup-config-usage::
+    """
+    m.return_value = {"NOT_SETUP_CONFIGURATION_STEPS": []}
+
+    with pytest.raises(ValueError) as excinfo:
+        parser.parse(rst_content, docutils_document)
+
+    assert str(excinfo.value) == (
+        "No steps configured. Set SETUP_CONFIGURATION_STEPS via your Django settings."
     )
