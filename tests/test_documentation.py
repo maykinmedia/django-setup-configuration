@@ -8,7 +8,7 @@ from docutils import nodes
 from docutils.frontend import get_default_settings
 from docutils.parsers.rst import Parser, directives
 from docutils.utils import new_document
-from pydantic import Field, ValidationError
+from pydantic import UUID4, Field, ValidationError
 
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.documentation.setup_config_example import (
@@ -69,6 +69,7 @@ class ConfigModel(ConfigurationModel):
     sequence_of_primitives: list[int] = Field()
     literal: Literal["foo", "bar", "bar"] = Field()
     literal_block_scalar: str = Field(default='{\n  "foo":"bar",\n  "bar":"baz"\n}')
+    uuid_field: UUID4 = Field()
 
     class Meta:
         django_model_refs = {
@@ -81,6 +82,7 @@ class ConfigModel(ConfigurationModel):
                 "str_with_localized_default",
                 "int_with_lazy_default",
                 "blank_str",
+                "uuid_field_with_default",
             )
         }
         extra_kwargs = {
@@ -226,6 +228,9 @@ def test_directive_output(register_directive, docutils_document):
             }
 
           # REQUIRED: true
+          uuid_field: 02907e89-1ba8-43e9-a86c-d0534d461316
+
+          # REQUIRED: true
           required_int: 1234
 
           # DEFAULT VALUE: 42
@@ -274,6 +279,10 @@ def test_directive_output(register_directive, docutils_document):
           # DEFAULT VALUE: ""
           # REQUIRED: false
           blank_str: example_string
+
+          # DEFAULT VALUE: "125a77ef-d158-4bea-b036-8dcdbdde428d"
+          # REQUIRED: false
+          uuid_field_with_default: 125a77ef-d158-4bea-b036-8dcdbdde428d
     """
     )
 

@@ -16,7 +16,9 @@ from typing import (
     get_args,
     get_origin,
 )
+from uuid import UUID
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.functional import Promise
 
 import ruamel.yaml
@@ -123,6 +125,8 @@ def _insert_example_with_comments(
     """
     if isinstance(example, str) and "\n" in example:
         example = LiteralScalarString(example)
+    if isinstance(example, UUID):
+        example = str(example)
 
     example_data[field_name] = example
     example_data.yaml_set_comment_before_after_key(field_name, before="\n")
@@ -140,14 +144,14 @@ def _insert_example_with_comments(
         _yaml_set_wrapped_comment(
             example_data,
             field_name,
-            f"POSSIBLE VALUES: {json.dumps(values)}",
+            f"POSSIBLE VALUES: {json.dumps(values, cls=DjangoJSONEncoder)}",
             80,
             indent=depth * 2,
         )
 
     if (default := _get_default_from_field_info(field_info)) is not PydanticUndefined:
         if not (isinstance(example, str) and "\n" in example):
-            default = json.dumps(default)
+            default = json.dumps(default, cls=DjangoJSONEncoder)
 
         example_data.yaml_set_comment_before_after_key(
             field_name, f"DEFAULT VALUE: {default}", indent=depth * 2
@@ -343,6 +347,7 @@ def _generate_basic_example(field_type: Any, field_info: FieldInfo) -> Any:
         float: 123.45,
         list: [],
         dict: {},
+        UUID: "02907e89-1ba8-43e9-a86c-d0534d461316",
     }
     return example_map.get(field_type, NO_EXAMPLE)
 
