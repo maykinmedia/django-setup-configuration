@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.functional import lazy
@@ -14,6 +16,10 @@ class DjangoModel(models.Model):
     int_with_default = models.IntegerField(default=42)
     nullable_int = models.IntegerField(null=True)
     nullable_int_with_default = models.IntegerField(default=42)
+    uuid_field = models.UUIDField()
+    uuid_field_with_default = models.UUIDField(
+        default=UUID("125a77ef-d158-4bea-b036-8dcdbdde428d")
+    )
 
     nullable_str = models.CharField(null=True, blank=False, max_length=1)
     nullable_and_blank_str = models.CharField(null=True, blank=False, max_length=1)
