@@ -63,11 +63,7 @@ class SetupConfigurationRunner:
                 "`settings.SETUP_CONFIGURATION_STEPS`"
             )
 
-        try:
-            self.configured_steps = self._initialize_steps(configured_steps)
-        except ImportError as exc:
-            raise ConfigurationException(f"Unable to import step {exc.name}")
-
+        self.configured_steps = self._initialize_steps(configured_steps)
         if yaml_source:
             self.yaml_source = (
                 Path(yaml_source) if isinstance(yaml_source, str) else yaml_source
@@ -93,18 +89,29 @@ class SetupConfigurationRunner:
 
     @classmethod
     def _initialize_steps(cls, steps: list[type[BaseConfigurationStep] | str]):
-        step_classes = [
-            import_string(step) if isinstance(step, str) else step for step in steps
-        ]
+        step_classes = []
+        for step in steps:
+            try:
+                step_classes.append(
+                    import_string(step) if isinstance(step, str) else step
+                )
+            except ImportError:
+                raise ConfigurationException(
+                    f"Your configured steps contain `{step}`, which cannot be imported"
+                )
 
         initialized_steps = []
         for step_cls in step_classes:
             if not inspect.isclass(step_cls) or not isinstance(step_cls, type):
-                raise ConfigurationException(f"{step_cls} is already initialized")
+                raise ConfigurationException(
+                    f"Your configured steps contain `{step_cls}`, which is not a "
+                    "class: did you perhaps provide an instance?"
+                )
 
             if not issubclass(step_cls, BaseConfigurationStep):
                 raise ConfigurationException(
-                    f"{step_cls} is not a subclass of {BaseConfigurationStep}"
+                    f"Your configured steps contain {step_cls.__name__}` which is not "
+                    f"a subclass of `{BaseConfigurationStep.__name__}`"
                 )
 
             step = step_cls()
