@@ -52,7 +52,9 @@ tests = [
     "isort",
     "black",
     "flake8",
-    "python-decouple"
+    "sphinx",
+    "beautifulsoup4",
+    "approvaltests"
 ]
 coverage = [
     "pytest-cov",

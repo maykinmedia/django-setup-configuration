@@ -1,0 +1,81 @@
+<div class="body" role="main">
+ <section id="django-setup-config">
+  <h1>
+   Using the setup_configuration management command
+   <a class="headerlink" href="#django-setup-config" title="Link to this heading">
+    ¶
+   </a>
+  </h1>
+  <p>
+   You can use the included
+   <code class="docutils literal notranslate">
+    <span class="pre">
+     setup_configuration
+    </span>
+   </code>
+   management command to configure your 
+instance from a yaml file as follows:
+  </p>
+  <div class="highlight-bash notranslate">
+   <div class="highlight">
+    <pre><span></span>python<span class="w"> </span>manage.py<span class="w"> </span>setup_configuration<span class="w"> </span>--yaml-file<span class="w"> </span>/path/to/config.yaml
+</pre>
+   </div>
+  </div>
+  <p>
+   You can also validate that the configuration source can be successfully loaded,
+without actually running the steps, by adding the
+   <code class="docutils literal notranslate">
+    <span class="pre">
+     validate-only
+    </span>
+   </code>
+   flag:
+  </p>
+  <div class="highlight-bash notranslate">
+   <div class="highlight">
+    <pre><span></span>python<span class="w"> </span>manage.py<span class="w"> </span>setup_configuration<span class="w"> </span>--yaml-file<span class="w"> </span>/path/to/config.yaml<span class="w"> </span>--validate-only
+</pre>
+   </div>
+  </div>
+  <p>
+   Both commands will either return 0 and a success message if the configuration file can
+be loaded without issues, otherwise it will return a non-zero exit code and print any
+validation errors.
+  </p>
+  <p>
+   Your YAML file should contain both a flag indicating whether the step is enabled or
+disabled, as well as an object containing the actual configuration values under the
+appropriate key.
+  </p>
+  <div class="admonition note">
+   <p class="admonition-title">
+    Note
+   </p>
+   <p>
+    All steps are disabled by default. You only have to explicitly include the
+flag to enable a step, not to disable it, though you may do so if you wish to
+have an explicit record of what steps are disabled.
+   </p>
+  </div>
+  <p>
+   Further information can be found at the
+   <a class="reference external" href="https://django-setup-configuration.readthedocs.io/en/0.6.0/quickstart.html#command-usage">
+    django-setup-configuration
+   </a>
+   documentation.
+  </p>
+  <p>
+   This projects includes the following configuration steps:
+  </p>
+  <ul class="simple">
+   <li>
+    <p>
+     User Configuration
+    </p>
+   </li>
+  </ul>
+ </section>
+ <div class="clearer">
+ </div>
+</div>
