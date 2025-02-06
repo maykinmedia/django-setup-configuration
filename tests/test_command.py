@@ -88,6 +88,60 @@ def test_command_errors_on_no_configured_steps(
     step_execute_mock.assert_not_called()
 
 
+def test_command_errors_on_step_instance_rather_than_class(
+    settings, step_execute_mock, yaml_file_with_valid_configuration
+):
+    settings.SETUP_CONFIGURATION_STEPS = [ConfigStep()]
+
+    with pytest.raises(CommandError) as exc:
+        call_command(
+            "setup_configuration", yaml_file=yaml_file_with_valid_configuration
+        )
+
+    assert str(exc.value) == (
+        "Your configured steps contain `ConfigStep`, which is not a class: "
+        "did you perhaps provide an instance?"
+    )
+    step_execute_mock.assert_not_called()
+
+
+def test_command_errors_on_step_which_does_not_inherit_from_base_configuration_step(
+    settings, step_execute_mock, yaml_file_with_valid_configuration
+):
+    class Foo:
+        pass
+
+    settings.SETUP_CONFIGURATION_STEPS = [Foo]
+
+    with pytest.raises(CommandError) as exc:
+        call_command(
+            "setup_configuration", yaml_file=yaml_file_with_valid_configuration
+        )
+
+    assert str(exc.value) == (
+        "Your configured steps contain Foo` which is not "
+        "a subclass of `BaseConfigurationStep`"
+    )
+    step_execute_mock.assert_not_called()
+
+
+def test_command_errors_on_non_importable_configuration_Step(
+    settings, step_execute_mock, yaml_file_with_valid_configuration
+):
+    settings.SETUP_CONFIGURATION_STEPS = ["this.module.does.not.exist"]
+
+    with pytest.raises(CommandError) as exc:
+        call_command(
+            "setup_configuration", yaml_file=yaml_file_with_valid_configuration
+        )
+
+    assert str(exc.value) == (
+        "Your configured steps contain `this.module.does.not.exist`, which "
+        "cannot be imported"
+    )
+    step_execute_mock.assert_not_called()
+
+
 def test_command_errors_on_no_enabled_steps(step_execute_mock, yaml_file_factory):
     yaml_file_path = yaml_file_factory(
         {
