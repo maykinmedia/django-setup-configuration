@@ -2,6 +2,18 @@
 Changelog
 =========
 
+0.7.0 (2025-02-06)
+==================
+
+**New features**
+
+* Add a directive for general purpose documentation in downstream projects
+
+**Bugfixes and QoL Changes**
+* Do not mark blank=True strings as polymorphic
+* [#58] Add example for UUID field in directive
+* Provide more descriptive errors on step loading in runner
+
 0.6.0 (2025-01-23)
 ==================
 
