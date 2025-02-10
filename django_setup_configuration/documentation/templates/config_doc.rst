@@ -1,4 +1,4 @@
-You can use the included ``setup_configuration`` management command to configure your 
+You can use the included ``setup_configuration`` management command to configure your
 instance from a yaml file as follows:
 
 .. code-block:: bash
@@ -31,12 +31,12 @@ Further information can be found at the `django-setup-configuration
 
 {% if show_steps %}
 This projects includes the following configuration steps (click on each step for a
-brief descripion and an example YAML you can include in your config file): 
+brief descripion and an example YAML you can include in your config file):
 {% else %}
-This projects includes the following configuration steps: 
+This projects includes the following configuration steps:
 {% endif %}
 
 {% for step in steps %}
-- {% if show_steps %}`{{ step.title }} <#{{ step.anchor_id }}>`_{% else %} {{ step.title }} {% endif %}
+- {% if show_steps %}`{{ step.title }} <#{{ step.module_path }}>`_{% else %} {{ step.title }} {% endif %}
 {% endfor %}
 {% endif %}
