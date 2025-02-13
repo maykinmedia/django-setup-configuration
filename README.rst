@@ -1,6 +1,6 @@
 
 
-Welcome to django_setup_configuration's documentation!
+Welcome to Django setup configuration's documentation!
 ======================================================
 
 :Version: 0.7.1
@@ -348,19 +348,19 @@ directory to the python path (or use ``python -m django <command>``):
     # django-admin makemessages -l nl
 
 
-.. |build-status| image:: https://github.com/maykinmedia/django_setup_configuration/workflows/Run%20CI/badge.svg
+.. |build-status| image:: https://github.com/maykinmedia/django-setup-configuration/workflows/Run%20CI/badge.svg
     :alt: Build status
-    :target: https://github.com/maykinmedia/django_setup_configuration/actions?query=workflow%3A%22Run+CI%22
+    :target: https://github.com/maykinmedia/django-setup-configuration/actions?query=workflow%3A%22Run+CI%22
 
-.. |code-quality| image:: https://github.com/maykinmedia/django_setup_configuration/workflows/Code%20quality%20checks/badge.svg
+.. |code-quality| image:: https://github.com/maykinmedia/django-setup-configuration/workflows/Code%20quality%20checks/badge.svg
      :alt: Code quality checks
-     :target: https://github.com/maykinmedia/django_setup_configuration/actions?query=workflow%3A%22Code+quality+checks%22
+     :target: https://github.com/maykinmedia/django-setup-configuration/actions?query=workflow%3A%22Code+quality+checks%22
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-.. |coverage| image:: https://codecov.io/gh/maykinmedia/django_setup_configuration/branch/main/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/django_setup_configuration
+.. |coverage| image:: https://codecov.io/gh/maykinmedia/django-setup-configuration/branch/main/graph/badge.svg
+    :target: https://codecov.io/gh/maykinmedia/django-setup-configuration
     :alt: Coverage status
 
 .. |docs| image:: https://readthedocs.org/projects/django_setup_configuration/badge/?version=latest
