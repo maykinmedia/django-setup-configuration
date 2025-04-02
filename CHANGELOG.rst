@@ -24,6 +24,7 @@ Changelog
 * Add a directive for general purpose documentation in downstream projects
 
 **Bugfixes and QoL Changes**
+
 * Do not mark blank=True strings as polymorphic
 * [#58] Add example for UUID field in directive
 * Provide more descriptive errors on step loading in runner
