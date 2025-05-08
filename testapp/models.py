@@ -23,6 +23,10 @@ class DjangoModel(models.Model):
 
     nullable_str = models.CharField(null=True, blank=False, max_length=1)
     nullable_and_blank_str = models.CharField(null=True, blank=False, max_length=1)
+    blank_bool_with_default = models.BooleanField(blank=True, default=False)
+    nullable_blank_bool_with_default = models.BooleanField(
+        blank=True, default=None, null=True
+    )
     blank_str = models.CharField(null=False, blank=True, max_length=1)
     slug = models.SlugField()
 
