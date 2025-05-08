@@ -410,3 +410,35 @@ def test_choices_with_incorrectly_typed_default_is_not_validated():
     config = Config()
     assert config.str_with_choices_and_incorrectly_typed_default == 1974
     assert config.str_with_choices_and_incorrectly_typed_default_factory == 1985
+
+
+def test_defaults_and_null_flags_are_respected_for_unmapped_fields():
+    class Config(ConfigurationModel):
+        unmapped_django_field_with_default_without_blank: str = DjangoModelRef(
+            DjangoModel, "unmapped_django_field_with_default_without_blank"
+        )
+        unmapped_django_field_with_default_with_blank: str = DjangoModelRef(
+            DjangoModel, "unmapped_django_field_with_default_with_blank"
+        )
+        unmapped_django_field_without_default_without_blank: str = DjangoModelRef(
+            DjangoModel, "unmapped_django_field_without_default_without_blank"
+        )
+        unmapped_django_field_without_default_with_blank: str = DjangoModelRef(
+            DjangoModel, "unmapped_django_field_without_default_with_blank"
+        )
+
+    assert (
+        Config.model_fields["unmapped_django_field_with_default_without_blank"].default
+        == Config.model_fields["unmapped_django_field_with_default_with_blank"].default
+        == "foo"
+    )
+    assert (
+        Config.model_fields[
+            "unmapped_django_field_without_default_without_blank"
+        ].default
+        is PydanticUndefined
+    )
+    assert (
+        Config.model_fields["unmapped_django_field_without_default_with_blank"].default
+        == ""
+    )
