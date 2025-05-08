@@ -2,6 +2,16 @@
 Changelog
 =========
 
+0.8.0 (2025-05-08)
+==================
+
+**Bugfixes**
+
+* [#68] Fix an issue whereby the annotation for Django fields would be incorrectly
+  generated and raise an exception when ``blank=True`` and ``default=bool|None``.
+  Defaults will now always be validated according to the field's base annotation, which
+  will be expanded if necessary to accommodate the default.
+
 0.7.2 (2025-03-24)
 ==================
 
