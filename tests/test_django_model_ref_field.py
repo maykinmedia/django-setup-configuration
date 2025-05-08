@@ -159,6 +159,29 @@ def test_explicit_default_overrides_model_field_default():
     )
 
 
+def test_blank_fields_have_default_added_as_literal():
+
+    class Config(ConfigurationModel):
+        blank_bool_with_default = DjangoModelRef(DjangoModel, "blank_bool_with_default")
+        nullable_blank_bool_with_default = DjangoModelRef(
+            DjangoModel, "nullable_blank_bool_with_default"
+        )
+
+    blank_bool_with_default = Config.model_fields["blank_bool_with_default"]
+    nullable_blank_bool_with_default = Config.model_fields[
+        "nullable_blank_bool_with_default"
+    ]
+
+    assert blank_bool_with_default.annotation == bool
+    assert nullable_blank_bool_with_default.annotation == bool | None
+
+    assert (
+        blank_bool_with_default.is_required()
+        is nullable_blank_bool_with_default.is_required()
+        is False
+    )
+
+
 def test_null_is_true_sets_default_to_none():
 
     class Config(ConfigurationModel):
@@ -213,7 +236,7 @@ def test_blank_is_true_null_is_false_sets_default_to_empty_str_for_str_fields():
 
     assert field.title == "blank str"
     assert field.description is None
-    assert field.annotation == str | Literal[""]
+    assert field.annotation == str
     assert field.default == ""
     assert field.is_required() is False
 

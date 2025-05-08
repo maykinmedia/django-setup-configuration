@@ -7,7 +7,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED, Field
 
-from pydantic import constr
+from pydantic import TypeAdapter, ValidationError, constr
 from pydantic.fields import FieldInfo
 
 
@@ -113,12 +113,19 @@ class DjangoModelRefInfo(FieldInfo):
                 if inferred_default is NOT_PROVIDED
                 else inferred_default
             )
-            default_type = (
-                inferred_default
-                if inferred_default in (None, True, False)
-                else Literal[inferred_default]
-            )
-            self.python_type = self.python_type | default_type
+
+            # Ensure that the inferred default is indeed valid according to the field's
+            # python type and, if not, expand the annotation to include the default
+            # value.
+            try:
+                TypeAdapter(self.python_type).validate_python(inferred_default)
+            except ValidationError:
+                default_type = (
+                    inferred_default
+                    if inferred_default is None
+                    else Literal[inferred_default]
+                )
+                self.python_type = self.python_type | default_type
 
         field_info_creation_kwargs["annotation"] = self.python_type
         if inferred_default is not NOT_PROVIDED:
