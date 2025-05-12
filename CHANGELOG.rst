@@ -2,6 +2,16 @@
 Changelog
 =========
 
+0.8.1 (2025-05-12)
+==================
+
+**Bugfixes**
+
+* [#71] The fix for incorrect annotations for the default value in blank fields,
+  introduced in 0.8.0, was not properly fixed for unmapped Django field types. This
+  release addresses the issue so that the default type is properly accounted for also
+  for unmapped field types.
+
 0.8.0 (2025-05-08)
 ==================
 
