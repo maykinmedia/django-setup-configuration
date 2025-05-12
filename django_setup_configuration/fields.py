@@ -7,7 +7,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED, Field
 
-from pydantic import TypeAdapter, ValidationError, constr
+from pydantic import PydanticSchemaGenerationError, TypeAdapter, ValidationError, constr
 from pydantic.fields import FieldInfo
 
 
@@ -114,11 +114,21 @@ class DjangoModelRefInfo(FieldInfo):
                 else inferred_default
             )
 
-            # Ensure that the inferred default is indeed valid according to the field's
-            # python type and, if not, expand the annotation to include the default
-            # value.
+            # Ensure that the inferred default is indeed valid according to the
+            # field's python type and, if not, expand the annotation to include the
+            # default value.
             try:
                 TypeAdapter(self.python_type).validate_python(inferred_default)
+            except PydanticSchemaGenerationError:
+
+                # For unmapped fields, this is an expected failure, and we can't amend
+                # the annotation because we don't have a base type to amend. In that
+                # case we can just ignore this logic and move on. Otherwise, re-raise
+                # the error because something has genuinely gone wrong on account of an
+                # Pydantic-undigestable base type.
+                if self.python_type is not UNMAPPED_DJANGO_FIELD:
+                    raise
+
             except ValidationError:
                 default_type = (
                     inferred_default

@@ -11,6 +11,10 @@ class StrChoices(models.TextChoices):
     bar = "bar", "Bar"
 
 
+class UnmappedDjangoField(models.Field):
+    pass
+
+
 class DjangoModel(models.Model):
     required_int = models.IntegerField()
     int_with_default = models.IntegerField(default=42)
@@ -76,3 +80,14 @@ class DjangoModel(models.Model):
     int_with_lazy_default = models.IntegerField(
         default=lazy(lambda: 42, int)(), verbose_name="int with lazy default"
     )
+
+    unmapped_django_field_with_default_without_blank = UnmappedDjangoField(
+        default="foo", blank=False
+    )
+    unmapped_django_field_with_default_with_blank = UnmappedDjangoField(
+        default="foo", blank=True
+    )
+    unmapped_django_field_without_default_without_blank = UnmappedDjangoField(
+        blank=False
+    )
+    unmapped_django_field_without_default_with_blank = UnmappedDjangoField(blank=True)
