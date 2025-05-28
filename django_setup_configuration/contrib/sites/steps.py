@@ -47,7 +47,7 @@ class SitesConfigurationStep(BaseConfigurationStep):
         except ValidationError as exception:
             exception_message = (
                 f"Validation error(s) occurred for "
-                f"the current site {first_site.domain}."
+                f"the current site {first_site.domain}: {exception!r}"
             )
             raise ConfigurationRunFailed(exception_message) from exception
         except IntegrityError as exception:
