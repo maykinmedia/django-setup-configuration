@@ -38,3 +38,4 @@ class UserConfigurationStep(BaseConfigurationStep[UserConfigurationModel]):
                 password=model.password,
                 is_superuser=True,
             )
+            user.full_clean()

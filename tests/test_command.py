@@ -59,6 +59,25 @@ def yaml_file_with_invalid_configuration(yaml_file_factory, test_step_valid_conf
     return yaml_path
 
 
+@pytest.fixture()
+def yaml_file_validity_mismatch_pydantic_and_django_model(
+    yaml_file_factory, test_step_valid_config
+):
+    yaml_path = yaml_file_factory(
+        {
+            "user_configuration_enabled": True,
+            "user_configuration": {
+                "username": "x" * 1024,  # Exceeds the max length of 150
+                "password": "secret",
+            },
+            "some_extra_attrs": "should be allowed",
+        }
+        | test_step_valid_config
+    )
+
+    return yaml_path
+
+
 def test_command_errors_on_missing_yaml_file(step_execute_mock):
     with pytest.raises(CommandError) as exc:
         call_command(
@@ -583,3 +602,27 @@ def test_command_rolls_back_all_on_failing_step(
     )
     assert User.objects.count() == 1
     assert step_execute_mock.call_count == 2
+
+
+def test_model_exceptions_are_reported_to_user(
+    yaml_file_validity_mismatch_pydantic_and_django_model,
+):
+    assert User.objects.count() == 0
+    stdout, stderr = StringIO(), StringIO()
+
+    with pytest.raises(CommandError) as excinfo:
+        call_command(
+            "setup_configuration",
+            yaml_file=yaml_file_validity_mismatch_pydantic_and_django_model,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+    assert (
+        "Error while executing step `User Configuration`\n    {'username': ['Ensure this value has at most 150 characters (it has 1024).']}\n"
+        in stderr.getvalue()
+    )
+    assert (
+        str(excinfo.value)
+        == "Aborting run due to a failed step. All database changes have been rolled back."
+    )

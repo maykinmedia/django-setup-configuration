@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.contrib.sites.models import Site
-from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db import IntegrityError
+from django.core.exceptions import ImproperlyConfigured
 
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.contrib.sites.models import SitesConfigurationModel
@@ -23,7 +22,7 @@ class SitesConfigurationStep(BaseConfigurationStep):
         if not model.items:
             raise ConfigurationRunFailed("Please specify one or more sites")
 
-        first_site = model.items[0]
+        first_site, other_sites = model.items[0], model.items[1:]
 
         # We need to ensure the current site is updated, to make sure that `get_current`
         # keeps working. The first site in the list is treated as the current site.
@@ -39,38 +38,14 @@ class SitesConfigurationStep(BaseConfigurationStep):
             # to exist, so we have to make sure the created site receives that ID.
             current_site.pk = getattr(settings, "SITE_ID")
 
-        try:
-            current_site.domain = first_site.domain
-            current_site.name = first_site.name
-            current_site.full_clean(exclude=("id",), validate_unique=False)
-            current_site.save()
-        except ValidationError as exception:
-            exception_message = (
-                f"Validation error(s) occurred for "
-                f"the current site {first_site.domain}."
-            )
-            raise ConfigurationRunFailed(exception_message) from exception
-        except IntegrityError as exception:
-            exception_message = (
-                f"Failed updating the current site with domain {first_site.domain}."
-            )
-            raise ConfigurationRunFailed(exception_message) from exception
+        current_site.domain = first_site.domain
+        current_site.name = first_site.name
+        current_site.full_clean(exclude=("id",), validate_unique=False)
+        current_site.save()
 
-        for item in model.items[1:]:
+        for item in other_sites:
             site_instance = Site(domain=item.domain, name=item.name)
-
-            try:
-                site_instance.full_clean(exclude=("id",), validate_unique=False)
-            except ValidationError as exception:
-                exception_message = (
-                    f"Validation error(s) occured for site {item.domain}."
-                )
-                raise ConfigurationRunFailed(exception_message) from exception
-
-            try:
-                Site.objects.update_or_create(
-                    domain=item.domain, defaults={"name": item.name}
-                )
-            except IntegrityError as exception:
-                exception_message = f"Failed configuring site {item.domain}."
-                raise ConfigurationRunFailed(exception_message) from exception
+            site_instance.full_clean(exclude=("id",), validate_unique=False)
+            Site.objects.update_or_create(
+                domain=site_instance.domain, defaults={"name": site_instance.name}
+            )
