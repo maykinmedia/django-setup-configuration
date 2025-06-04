@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.8.2 (2025-06-04)
+==================
+
+* [#76] The bundled configuration for the Sites framework no longer suppresses database
+  level validation errors, which now bubble up and get properly reported by the
+  management command. This helps decipher validation errors arising from constraints
+  that couldn't be captured at the configuration model level.
+
 0.8.1 (2025-05-12)
 ==================
 
