@@ -8,6 +8,8 @@ USE_TZ = True
 
 SITE_ID = 1
 
+PROJECT_NAME = "TestApp"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",

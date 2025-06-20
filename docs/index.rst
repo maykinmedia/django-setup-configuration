@@ -26,6 +26,7 @@ Features
 
    config_docs.rst
    sites_config.rst
+   user_config.rst
 
 `Quickstart <./quickstart.rst>`_
 

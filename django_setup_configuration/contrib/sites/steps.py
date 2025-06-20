@@ -3,7 +3,9 @@ from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 
 from django_setup_configuration.configuration import BaseConfigurationStep
-from django_setup_configuration.contrib.sites.models import SitesConfigurationModel
+from django_setup_configuration.contrib.sites.models import (
+    SitesConfigurationModel,
+)
 from django_setup_configuration.exceptions import ConfigurationRunFailed
 
 

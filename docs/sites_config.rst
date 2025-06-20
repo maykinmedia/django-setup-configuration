@@ -16,8 +16,9 @@ To make use of this, add the step to your ``SETUP_CONFIGURATION_STEPS``:
         ]
 
 Create or update your YAML configuration file with your settings:
+.. code-block:: rst
 
-.. setup-config-example:: django_setup_configuration.contrib.sites.steps.SitesConfigurationStep
+    .. setup-config-example:: django_setup_configuration.contrib.sites.steps.SitesConfigurationStep
 
 .. note::
     The first item in the list will be used to update the current ``Site`` instance,
