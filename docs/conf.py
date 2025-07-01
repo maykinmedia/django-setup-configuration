@@ -31,9 +31,10 @@ if not settings.configured:
     settings.configure(
         INSTALLED_APPS=[
             "django.contrib.sites",  # Required by Django models
+            "django.contrib.contenttypes",
+            "django.contrib.auth",
         ],
     )
-
 django.setup()
 
 
