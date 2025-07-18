@@ -1,4 +1,7 @@
 import collections
+import os
+from pathlib import Path
+from typing import Any, TypeAlias
 
 from pydantic import create_model
 from pydantic.fields import Field
@@ -9,17 +12,71 @@ from pydantic_settings import (
     InitSettingsSource,
     SecretsSettingsSource,
     SettingsConfigDict,
-)
-from pydantic_settings.sources import (
-    PydanticBaseSettingsSource,
     YamlConfigSettingsSource,
 )
+from pydantic_settings.sources import PydanticBaseSettingsSource
 
 from django_setup_configuration.models import ConfigurationModel
 
 ConfigSourceModels = collections.namedtuple(
     "ConfigSourceModels", ["enable_setting_source", "config_settings_source"]
 )
+
+
+JSONValue: TypeAlias = dict | list | str | bool | float | int | None
+
+
+class YamlWithEnvSubstitution(YamlConfigSettingsSource):
+    """Modified YAML source that recursively substitutes markers with env vars."""
+
+    def __init__(self, namespace: str, **kwargs):
+        self.namespace = namespace
+        super().__init__(**kwargs)
+
+    @staticmethod
+    def substitute(field: JSONValue, field_name: str) -> JSONValue:
+        match field:
+            case dict():
+                if "value_from" in field:
+                    if "env" in field["value_from"]:
+                        field_value = field["value_from"]["env"]
+                        if field_value in os.environ:
+                            return os.environ[field_value]
+                        else:
+                            raise ValueError(
+                                f"Required environment variable '{field_value}' not "
+                                f"found for field '{field_name}'.\nSet the environment "
+                                f"variable '{field_value}' or update your YAML "
+                                "configuration."
+                            )
+                    else:
+                        raise ValueError(
+                            f"Invalid YAML configuration for field '{field_name}'.\n"
+                            "When using 'value_from', specify 'env' with the "
+                            f"environment variable name:\n  {field_name}:\n    "
+                            "value_from:\n      env: YOUR_ENV_VAR_NAME"
+                        )
+                else:
+                    for inner_field_name in field.keys():
+                        inner_field = field[inner_field_name]
+                        field[inner_field_name] = YamlWithEnvSubstitution.substitute(
+                            field=inner_field, field_name=inner_field_name
+                        )
+                    return field
+            case list():
+                objects = field
+                for obj in objects:
+                    YamlWithEnvSubstitution.substitute(field=obj, field_name=field_name)
+                    return field
+            case _:
+                return field
+
+    def _read_file(self, file_path: Path) -> dict[str, Any]:
+        # We override this method to perform environment variable substitution before
+        # the parent class validates the loaded data against the Pydantic model, which
+        # happens in the constructor right after calling self._read_file
+        yaml_data = super()._read_file(file_path)
+        return self.substitute(yaml_data, self.namespace)
 
 
 def create_config_source_models(
@@ -68,9 +125,8 @@ def create_config_source_models(
             return (
                 InitSettingsSource(settings_cls, init_kwargs=init_settings.init_kwargs),
             ) + (
-                YamlConfigSettingsSource(
-                    settings_cls,
-                    yaml_file=yaml_file,
+                YamlWithEnvSubstitution(
+                    namespace=namespace, settings_cls=settings_cls, yaml_file=yaml_file
                 ),
             )
 
