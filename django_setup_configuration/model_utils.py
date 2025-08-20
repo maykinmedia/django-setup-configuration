@@ -1,7 +1,7 @@
 import collections
 import os
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, Mapping, Sequence, TypeAlias
 
 from pydantic import create_model
 from pydantic.fields import Field
@@ -23,7 +23,9 @@ ConfigSourceModels = collections.namedtuple(
 )
 
 
-JSONValue: TypeAlias = dict | list | str | bool | float | int | None
+JSONValue: TypeAlias = (
+    None | bool | int | float | str | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
+)
 
 
 class YamlWithEnvSubstitution(YamlConfigSettingsSource):
@@ -38,11 +40,19 @@ class YamlWithEnvSubstitution(YamlConfigSettingsSource):
         match field:
             case dict():
                 if "value_from" in field:
-                    if "env" in field["value_from"]:
-                        field_value = field["value_from"]["env"]
+                    value_from = field["value_from"]
+                    if not isinstance(value_from, dict):
+                        raise ValueError(
+                            f"Invalid YAML configuration for field '{field_name}'.\n"
+                            "'value_from' must be an object."
+                        )
+
+                    if "env" in value_from:
+                        field_value = value_from["env"]
                         if field_value in os.environ:
                             return os.environ[field_value]
                         else:
+                            # if default := field["value_from"].get("default")
                             raise ValueError(
                                 f"Required environment variable '{field_value}' not "
                                 f"found for field '{field_name}'.\nSet the environment "

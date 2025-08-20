@@ -258,3 +258,29 @@ def test_value_pointing_to_env_is_loaded_from_env_with_list(monkeypatch, yaml_fi
             ],
         },
     }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": "not_a_dict",
+            },
+            "nested_obj": {"nested_foo": "a nested string"},
+        },
+    }
+)
+def test_exception_is_raised_when_value_from_is_not_dict(yaml_file):
+    with pytest.raises(ValueError) as error:
+        _, SettingsModel = create_config_source_models(
+            "config_enabled",
+            "the_namespace",
+            MyConfigModel,
+            yaml_file=yaml_file,
+        )
+        SettingsModel()
+
+    assert str(error.value) == (
+        "Invalid YAML configuration for field 'foo'.\n'value_from' must be an object."
+    )
