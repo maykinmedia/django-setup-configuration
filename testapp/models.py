@@ -91,3 +91,7 @@ class DjangoModel(models.Model):
         blank=False
     )
     unmapped_django_field_without_default_with_blank = UnmappedDjangoField(blank=True)
+
+
+class SomeModel(models.Model):
+    foo = models.CharField(max_length="20")

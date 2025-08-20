@@ -83,6 +83,9 @@ sections=["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "testapp.settings"
+markers = [
+    "yaml_configuration: marks tests as using a specified YAML configuration"
+]
 
 [tool.pytest]
 testpaths = ["tests"]

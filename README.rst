@@ -202,6 +202,44 @@ Note that you can combine settings for multiple steps in a single file. The root
 keys are exclusively used for the steps' ``enable_setting`` key, and the ``namespace``
 key which encapsulates the configuration model's attributes.
 
+Environment Variable Substitution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can reference environment variables in your YAML configuration using the 
+``value_from`` pattern. This allows you to keep sensitive values like passwords out of
+your configuration files:
+
+.. code-block:: yaml
+
+    user_configuration_enabled: true 
+    user_configuration:
+        username: alice
+        password:
+            value_from:
+                env: USER_PASSWORD
+        add_to_groups:
+            - moderators
+            - editors
+
+This pattern can be used for any field in your configuration model. The environment
+variable ``USER_PASSWORD`` must be set when the configuration is loaded, or an error
+will be raised with guidance on how to fix the issue.
+
+You can also use this pattern for non-sensitive configuration that varies between
+environments:
+
+.. code-block:: yaml
+
+    database_configuration_enabled: true
+    database_configuration:
+        host:
+            value_from:
+                env: DB_HOST
+        port:
+            value_from:
+                env: DB_PORT
+        name: myapp_db
+
 Step Registration
 -----------------
 
