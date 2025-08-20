@@ -284,3 +284,67 @@ def test_exception_is_raised_when_value_from_is_not_dict(yaml_file):
     assert str(error.value) == (
         "Invalid YAML configuration for field 'foo'.\n'value_from' must be an object."
     )
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": {
+                    "env": "NONEXISTENT_VAR",
+                    "default": "default_value",
+                }
+            },
+            "nested_obj": {"nested_foo": "a nested string"},
+        },
+    }
+)
+def test_default_value_is_used_when_env_var_not_found(yaml_file):
+    # Note: We don't set NONEXISTENT_VAR environment variable
+    
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        MyConfigModel,
+        yaml_file=yaml_file,
+    )
+    
+    assert SettingsModel().model_dump() == {
+        "the_namespace": {
+            "foo": "default_value",
+            "nested_obj": {"nested_foo": "a nested string"},
+        }
+    }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": {
+                    "env": "FOO",
+                    "default": "default_value",
+                }
+            },
+            "nested_obj": {"nested_foo": "a nested string"},
+        },
+    }
+)
+def test_env_var_takes_precedence_over_default(monkeypatch, yaml_file):
+    monkeypatch.setenv("FOO", "env_value")
+    
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        MyConfigModel,
+        yaml_file=yaml_file,
+    )
+    
+    assert SettingsModel().model_dump() == {
+        "the_namespace": {
+            "foo": "env_value",
+            "nested_obj": {"nested_foo": "a nested string"},
+        }
+    }

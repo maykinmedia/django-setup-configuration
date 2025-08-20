@@ -225,6 +225,23 @@ This pattern can be used for any field in your configuration model. The environm
 variable ``USER_PASSWORD`` must be set when the configuration is loaded, or an error
 will be raised with guidance on how to fix the issue.
 
+You can also provide an optional default value that will be used when the environment
+variable is not set:
+
+.. code-block:: yaml
+
+    user_configuration_enabled: true 
+    user_configuration:
+        username: alice
+        password:
+            value_from:
+                env: USER_PASSWORD
+                default: default_password
+        timeout:
+            value_from:
+                env: REQUEST_TIMEOUT
+                default: 30
+
 You can also use this pattern for non-sensitive configuration that varies between
 environments:
 

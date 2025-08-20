@@ -51,8 +51,9 @@ class YamlWithEnvSubstitution(YamlConfigSettingsSource):
                         field_value = value_from["env"]
                         if field_value in os.environ:
                             return os.environ[field_value]
+                        elif "default" in value_from:
+                            return value_from["default"]
                         else:
-                            # if default := field["value_from"].get("default")
                             raise ValueError(
                                 f"Required environment variable '{field_value}' not "
                                 f"found for field '{field_name}'.\nSet the environment "
