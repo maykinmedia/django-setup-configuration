@@ -8,15 +8,37 @@ from django_setup_configuration.models import ConfigurationModel
 from testapp.models import SomeModel
 
 
-class MyConfigModel(ConfigurationModel):
-    nested_obj: Optional[dict] = pydantic.Field()
+class DeepNestedModel(ConfigurationModel):
+    very_deep_field: str
+    optional_deep_field: Optional[str] = pydantic.Field(default="deep_default")
+
+
+class NestedModel(ConfigurationModel):
+    nested_field: str
+    optional_nested_field: Optional[str] = pydantic.Field(default="nested_default")
+    deep_config: DeepNestedModel
+
+
+class RootConfigModel(ConfigurationModel):
+    """Root configuration model with Django model refs and nested structure"""
+
+    # Field with Django model ref (foo field from SomeModel)
+    foo: str
+
+    # Required field without default
+    required_field: str
+
+    # Optional field with explicit default
+    optional_field: Optional[str] = pydantic.Field(default="root_default")
+
+    # Nested configuration
+    nested_config: NestedModel
+
+    # List of nested configurations
+    nested_list: list[NestedModel]
 
     class Meta:
         django_model_refs = {SomeModel: ("foo",)}
-
-
-class MyListedConfigModel(ConfigurationModel):
-    items: list[MyConfigModel]
 
 
 @pytest.fixture()
@@ -33,61 +55,102 @@ def yaml_file(request, yaml_file_factory):
         "the_namespace": {
             "foo": {
                 "value_from": {
-                    "env": "FOO",
+                    "env": "FOO_VAR",
                 }
             },
-            "nested_obj": {"nested_foo": "a nested string"},
+            "required_field": "some_required_value",
+            "optional_field": "explicit_optional_value",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "optional_nested_field": "explicit_nested_value",
+                "deep_config": {
+                    "very_deep_field": "deep_value",
+                    "optional_deep_field": "explicit_deep_value",
+                },
+            },
+            "nested_list": [
+                {
+                    "nested_field": "list_nested_value",
+                    "deep_config": {"very_deep_field": "list_deep_value"},
+                }
+            ],
         },
     }
 )
 def test_value_pointing_to_env_is_loaded_from_env(monkeypatch, yaml_file):
-    monkeypatch.setenv("FOO", "secret_from_env")
+    monkeypatch.setenv("FOO_VAR", "foo_from_env")
 
     FlagModel, SettingsModel = create_config_source_models(
         "config_enabled",
         "the_namespace",
-        MyConfigModel,
+        RootConfigModel,
         yaml_file=yaml_file,
     )
 
     assert FlagModel().model_dump() == {"config_enabled": True}
     assert SettingsModel().model_dump() == {
         "the_namespace": {
-            "foo": "secret_from_env",
-            "nested_obj": {"nested_foo": "a nested string"},
+            "foo": "foo_from_env",  # Substituted from env
+            "required_field": "some_required_value",
+            "optional_field": "explicit_optional_value",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "optional_nested_field": "explicit_nested_value",
+                "deep_config": {
+                    "very_deep_field": "deep_value",
+                    "optional_deep_field": "explicit_deep_value",
+                },
+            },
+            "nested_list": [
+                {
+                    "nested_field": "list_nested_value",
+                    "optional_nested_field": "nested_default",  # Uses default
+                    "deep_config": {
+                        "very_deep_field": "list_deep_value",
+                        "optional_deep_field": "deep_default",  # Uses default
+                    },
+                }
+            ],
         }
     }
 
 
 @pytest.mark.yaml_configuration(
     {
-        "extra": "Extra vars at the root level are valid",
         "config_enabled": True,
         "the_namespace": {
             "foo": {
                 "value_from": {
-                    "env": "FOO",
+                    "env": "MISSING_FOO_VAR",
                 }
             },
-            "nested_obj": {"nested_foo": "a nested string"},
+            "required_field": "some_required_value",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "deep_config": {"very_deep_field": "deep_value"},
+            },
+            "nested_list": [],
         },
     }
 )
-def test_exception_is_raised_on_nonexistent_environment_variable(yaml_file):
+def test_raise_on_nonexistent_environment_variable_without_default_or_fallthrough(
+    yaml_file,
+):
     # Note that we don't set/monkeypatch an environment variable
 
     with pytest.raises(ValueError) as error:
         _, SettingsModel = create_config_source_models(
             "config_enabled",
             "the_namespace",
-            MyConfigModel,
+            RootConfigModel,
             yaml_file=yaml_file,
         )
         SettingsModel().model_dump()
 
     assert str(error.value) == (
-        "Required environment variable 'FOO' not found for field 'foo'.\nSet the "
-        "environment variable 'FOO' or update your YAML configuration."
+        "Required environment variable 'MISSING_FOO_VAR' not found for field 'foo'.\n"
+        "Set the environment variable 'MISSING_FOO_VAR' or update your YAML "
+        "configuration."
     )
 
 
@@ -100,25 +163,31 @@ def test_exception_is_raised_on_nonexistent_environment_variable(yaml_file):
                     "bar": "foobar",
                 }
             },
-            "nested_obj": {"nested_foo": "a nested string"},
+            "required_field": "some_required_value",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "deep_config": {"very_deep_field": "deep_value"},
+            },
+            "nested_list": [],
         },
     }
 )
 def test_exception_is_raised_on_incorrect_env_configuration(yaml_file):
-    with pytest.raises(ValueError) as error:
+    with pytest.raises(pydantic.ValidationError) as error:
         _, SettingsModel = create_config_source_models(
             "config_enabled",
             "the_namespace",
-            MyConfigModel,
+            RootConfigModel,
             yaml_file=yaml_file,
         )
         SettingsModel()
 
-    assert str(error.value) == (
-        "Invalid YAML configuration for field 'foo'.\nWhen using 'value_from', specify"
-        " 'env' with the environment variable name:\n  foo:\n    value_from:\n      "
-        "env: YOUR_ENV_VAR_NAME"
+    errors = error.value.errors(
+        include_url=False, include_context=False, include_input=False
     )
+    assert len(errors) == 1
+    assert errors[0]["type"] == "missing"
+    assert errors[0]["loc"] == ("env",)
 
 
 @pytest.mark.yaml_configuration(
@@ -127,36 +196,57 @@ def test_exception_is_raised_on_incorrect_env_configuration(yaml_file):
         "the_namespace": {
             "foo": {
                 "value_from": {
-                    "env": "FOO",
+                    "env": "FOO_VAR",
                 }
             },
-            "nested_obj": {
-                "nested_foo": {
-                    "very_nested_foo": {
-                        "value_from": {
-                            "env": "FOO",
-                        }
+            "required_field": "some_required_value",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "optional_nested_field": {
+                    "value_from": {
+                        "env": "NESTED_VAR",
                     }
-                }
+                },
+                "deep_config": {
+                    "very_deep_field": "deep_value",
+                    "optional_deep_field": {
+                        "value_from": {
+                            "env": "DEEP_VAR",
+                        }
+                    },
+                },
             },
+            "nested_list": [],
         },
     }
 )
 def test_value_pointing_to_env_is_loaded_from_nested_env(monkeypatch, yaml_file):
-    monkeypatch.setenv("FOO", "secret_from_env")
+    monkeypatch.setenv("FOO_VAR", "foo_from_env")
+    monkeypatch.setenv("NESTED_VAR", "nested_from_env")
+    monkeypatch.setenv("DEEP_VAR", "deep_from_env")
 
     FlagModel, SettingsModel = create_config_source_models(
         "config_enabled",
         "the_namespace",
-        MyConfigModel,
+        RootConfigModel,
         yaml_file=yaml_file,
     )
 
     assert FlagModel().model_dump() == {"config_enabled": True}
     assert SettingsModel().model_dump() == {
         "the_namespace": {
-            "foo": "secret_from_env",
-            "nested_obj": {"nested_foo": {"very_nested_foo": "secret_from_env"}},
+            "foo": "foo_from_env",
+            "required_field": "some_required_value",
+            "optional_field": "root_default",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "optional_nested_field": "nested_from_env",
+                "deep_config": {
+                    "very_deep_field": "deep_value",
+                    "optional_deep_field": "deep_from_env",
+                },
+            },
+            "nested_list": [],
         }
     }
 
@@ -167,47 +257,82 @@ def test_value_pointing_to_env_is_loaded_from_nested_env(monkeypatch, yaml_file)
         "the_namespace": {
             "foo": {
                 "value_from": {
-                    "env": "FOO",
+                    "env": "FOO_VAR",
                 }
             },
-            "nested_obj": {
-                "nested_foo": [
-                    {
-                        "very_nested_foo": {
-                            "value_from": {
-                                "env": "FOO",
-                            }
+            "required_field": "some_required_value",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "deep_config": {"very_deep_field": "deep_value"},
+            },
+            "nested_list": [
+                {
+                    "nested_field": {
+                        "value_from": {
+                            "env": "LIST_NESTED_VAR",
                         }
                     },
-                    {"very_nested_foo": "hardcoded value"},
-                ]
-            },
+                    "deep_config": {
+                        "very_deep_field": "list_deep_value",
+                        "optional_deep_field": {
+                            "value_from": {
+                                "env": "LIST_DEEP_VAR",
+                            }
+                        },
+                    },
+                },
+                {
+                    "nested_field": "static_nested_value",
+                    "deep_config": {"very_deep_field": "static_deep_value"},
+                },
+            ],
         },
     }
 )
-def test_value_pointing_to_env_is_loaded_from_nested_env_list(
-    monkeypatch,
-    yaml_file,
-):
-    monkeypatch.setenv("FOO", "secret_from_env")
+def test_value_pointing_to_env_is_loaded_from_nested_env_list(monkeypatch, yaml_file):
+    monkeypatch.setenv("FOO_VAR", "foo_from_env")
+    monkeypatch.setenv("LIST_NESTED_VAR", "list_nested_from_env")
+    monkeypatch.setenv("LIST_DEEP_VAR", "list_deep_from_env")
 
     FlagModel, SettingsModel = create_config_source_models(
         "config_enabled",
         "the_namespace",
-        MyConfigModel,
+        RootConfigModel,
         yaml_file=yaml_file,
     )
 
     assert FlagModel().model_dump() == {"config_enabled": True}
     assert SettingsModel().model_dump() == {
         "the_namespace": {
-            "foo": "secret_from_env",
-            "nested_obj": {
-                "nested_foo": [
-                    {"very_nested_foo": "secret_from_env"},
-                    {"very_nested_foo": "hardcoded value"},
-                ]
+            "foo": "foo_from_env",
+            "required_field": "some_required_value",
+            "optional_field": "root_default",
+            "nested_config": {
+                "nested_field": "nested_value",
+                "optional_nested_field": "nested_default",
+                "deep_config": {
+                    "very_deep_field": "deep_value",
+                    "optional_deep_field": "deep_default",
+                },
             },
+            "nested_list": [
+                {
+                    "nested_field": "list_nested_from_env",
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "list_deep_value",
+                        "optional_deep_field": "list_deep_from_env",
+                    },
+                },
+                {
+                    "nested_field": "static_nested_value",
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "static_deep_value",
+                        "optional_deep_field": "deep_default",
+                    },
+                },
+            ],
         }
     }
 
@@ -216,74 +341,86 @@ def test_value_pointing_to_env_is_loaded_from_nested_env_list(
     {
         "config_enabled": True,
         "the_namespace": {
-            "items": [
+            "nested_list": [
                 {
-                    "foo": {
+                    "nested_field": {
                         "value_from": {
-                            "env": "FOO",
-                        },
+                            "env": "FIRST_NESTED_VAR",
+                        }
                     },
-                    "nested_obj": {"nested_foo": "a nested string"},
+                    "deep_config": {"very_deep_field": "first_deep_value"},
                 },
                 {
-                    "foo": "some hardcoded secret",
-                    "nested_obj": {"nested_foo": "a nested string"},
+                    "nested_field": "second_nested_value",
+                    "deep_config": {"very_deep_field": "second_deep_value"},
                 },
-            ],
+            ]
         },
     }
 )
 def test_value_pointing_to_env_is_loaded_from_env_with_list(monkeypatch, yaml_file):
-    monkeypatch.setenv("FOO", "secret_from_env")
+    monkeypatch.setenv("FIRST_NESTED_VAR", "first_from_env")
+
+    class ListOnlyModel(ConfigurationModel):
+        nested_list: list[NestedModel]
 
     FlagModel, SettingsModel = create_config_source_models(
         "config_enabled",
         "the_namespace",
-        MyListedConfigModel,
+        ListOnlyModel,
         yaml_file=yaml_file,
     )
 
     assert FlagModel().model_dump() == {"config_enabled": True}
     assert SettingsModel().model_dump() == {
         "the_namespace": {
-            "items": [
+            "nested_list": [
                 {
-                    "foo": "secret_from_env",
-                    "nested_obj": {"nested_foo": "a nested string"},
+                    "nested_field": "first_from_env",
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "first_deep_value",
+                        "optional_deep_field": "deep_default",
+                    },
                 },
                 {
-                    "foo": "some hardcoded secret",
-                    "nested_obj": {"nested_foo": "a nested string"},
+                    "nested_field": "second_nested_value",
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "second_deep_value",
+                        "optional_deep_field": "deep_default",
+                    },
                 },
-            ],
-        },
+            ]
+        }
     }
 
 
 @pytest.mark.yaml_configuration(
     {
         "config_enabled": True,
-        "the_namespace": {
-            "foo": {
-                "value_from": "not_a_dict",
-            },
-            "nested_obj": {"nested_foo": "a nested string"},
-        },
+        "the_namespace": {"foo": {"value_from": "not a dict"}},
     }
 )
-def test_exception_is_raised_when_value_from_is_not_dict(yaml_file):
-    with pytest.raises(ValueError) as error:
+def test_raise_when_value_from_is_not_dict(yaml_file):
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
+    with pytest.raises(pydantic.ValidationError) as error:
         _, SettingsModel = create_config_source_models(
             "config_enabled",
             "the_namespace",
-            MyConfigModel,
+            SimpleOptionalModel,
             yaml_file=yaml_file,
         )
         SettingsModel()
 
-    assert str(error.value) == (
-        "Invalid YAML configuration for field 'foo'.\n'value_from' must be an object."
+    errors = error.value.errors(
+        include_url=False, include_context=False, include_input=False
     )
+    assert len(errors) == 1
+    assert errors[0]["type"] == "model_type"
+    assert errors[0]["loc"] == ()
 
 
 @pytest.mark.yaml_configuration(
@@ -292,28 +429,27 @@ def test_exception_is_raised_when_value_from_is_not_dict(yaml_file):
         "the_namespace": {
             "foo": {
                 "value_from": {
-                    "env": "NONEXISTENT_VAR",
-                    "default": "default_value",
+                    "env": "MISSING_VAR",
+                    "default": "fallback_value",
                 }
             },
-            "nested_obj": {"nested_foo": "a nested string"},
         },
     }
 )
 def test_default_value_is_used_when_env_var_not_found(yaml_file):
-    # Note: We don't set NONEXISTENT_VAR environment variable
-    
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
     _, SettingsModel = create_config_source_models(
         "config_enabled",
         "the_namespace",
-        MyConfigModel,
+        SimpleOptionalModel,
         yaml_file=yaml_file,
     )
-    
+
     assert SettingsModel().model_dump() == {
         "the_namespace": {
-            "foo": "default_value",
-            "nested_obj": {"nested_foo": "a nested string"},
+            "foo": "fallback_value",  # Uses default from value_from
         }
     }
 
@@ -324,27 +460,318 @@ def test_default_value_is_used_when_env_var_not_found(yaml_file):
         "the_namespace": {
             "foo": {
                 "value_from": {
-                    "env": "FOO",
-                    "default": "default_value",
+                    "env": "MISSING_VAR_WITH_NULL_DEFAULT",
+                    "default": None,  # Explicit null default
                 }
             },
-            "nested_obj": {"nested_foo": "a nested string"},
+        },
+    }
+)
+def test_default_null_value_is_used_when_env_var_not_found(yaml_file):
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        SimpleOptionalModel,
+        yaml_file=yaml_file,
+    )
+
+    assert SettingsModel().model_dump() == {
+        "the_namespace": {
+            "foo": None,  # Uses explicit null default from value_from
+        }
+    }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "field_with_null_default": {
+                "value_from": {
+                    "env": "MISSING_VAR_NULL",
+                    "default": None,  # Explicit null default
+                }
+            },
+            "field_with_no_default_but_optional": {
+                "value_from": {
+                    "env": "MISSING_VAR_OPTIONAL",
+                    "required": False,  # No default, but not require: should be omitted
+                }
+            },
+            "required_field": "some_required_value",
+        },
+    }
+)
+def test_null_default_differs_from_absent_default(yaml_file):
+    class MixedModel(ConfigurationModel):
+        field_with_null_default: Optional[str] = pydantic.Field(
+            default="model_default_1"
+        )
+        field_with_no_default_but_optional: Optional[str] = pydantic.Field(
+            default="model_default_2"
+        )
+        required_field: str
+
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        MixedModel,
+        yaml_file=yaml_file,
+    )
+
+    result = SettingsModel().model_dump()
+
+    assert result == {
+        "the_namespace": {
+            "field_with_null_default": None,  # Uses explicit null from value_from
+            "field_with_no_default_but_optional": "model_default_2",  # Model default
+            "required_field": "some_required_value",
+        }
+    }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": {
+                    "env": "PRESENT_VAR",
+                    "default": "fallback_value",
+                }
+            },
         },
     }
 )
 def test_env_var_takes_precedence_over_default(monkeypatch, yaml_file):
-    monkeypatch.setenv("FOO", "env_value")
-    
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
+    monkeypatch.setenv("PRESENT_VAR", "env_value")
+
     _, SettingsModel = create_config_source_models(
         "config_enabled",
         "the_namespace",
-        MyConfigModel,
+        SimpleOptionalModel,
         yaml_file=yaml_file,
     )
-    
+
     assert SettingsModel().model_dump() == {
         "the_namespace": {
-            "foo": "env_value",
-            "nested_obj": {"nested_foo": "a nested string"},
+            "foo": "env_value",  # Env var takes precedence
         }
+    }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": {
+                    "env": "MISSING_VAR",
+                    "required": False,
+                }
+            },
+        },
+    }
+)
+def test_required_false_falls_back_to_model_default_on_missing_env(yaml_file):
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        SimpleOptionalModel,
+        yaml_file=yaml_file,
+    )
+
+    result = SettingsModel().model_dump()
+
+    assert result == {
+        "the_namespace": {
+            "foo": "default_foo",  # Uses Pydantic default after _OMIT_KEY
+        }
+    }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": {
+                    "env": "PRESENT_VAR",
+                    "required": False,
+                }
+            },
+        },
+    }
+)
+def test_required_false_uses_env_var_when_available(monkeypatch, yaml_file):
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
+    monkeypatch.setenv("PRESENT_VAR", "env_value")
+
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        SimpleOptionalModel,
+        yaml_file=yaml_file,
+    )
+
+    assert SettingsModel().model_dump() == {
+        "the_namespace": {
+            "foo": "env_value",  # Uses env var when present
+        }
+    }
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "foo": {
+                "value_from": {
+                    "env": "SOME_VAR",
+                    "required": False,
+                    "default": "default_value",
+                }
+            },
+        },
+    }
+)
+def test_raise_when_required_and_default_both_specified(yaml_file):
+    class SimpleOptionalModel(ConfigurationModel):
+        foo: Optional[str] = pydantic.Field(default="default_foo")
+
+    with pytest.raises(pydantic.ValidationError) as error:
+        _, SettingsModel = create_config_source_models(
+            "config_enabled",
+            "the_namespace",
+            SimpleOptionalModel,
+            yaml_file=yaml_file,
+        )
+        SettingsModel()
+
+    errors = error.value.errors(
+        include_url=False, include_context=False, include_input=False
+    )
+    assert len(errors) == 1
+    assert errors[0]["type"] == "value_error"
+    assert (
+        "'required' and 'default' cannot both be specified in 'value_from'"
+        in errors[0]["msg"]
+    )
+
+
+@pytest.mark.yaml_configuration(
+    {
+        "config_enabled": True,
+        "the_namespace": {
+            "nested_list": [
+                {
+                    # First item: not required and env var not set - should omit key
+                    "nested_field": {
+                        "value_from": {
+                            "env": "MISSING_VAR_1",
+                            "required": False,
+                        }
+                    },
+                    "deep_config": {"very_deep_field": "first_deep"},
+                },
+                {
+                    # Second item: has env var available - should substitute
+                    "nested_field": {
+                        "value_from": {
+                            "env": "AVAILABLE_VAR",
+                        }
+                    },
+                    "deep_config": {"very_deep_field": "second_deep"},
+                },
+                {
+                    # Third item: not required and env var not set - should omit key
+                    "nested_field": {
+                        "value_from": {
+                            "env": "MISSING_VAR_2",
+                            "required": False,
+                        }
+                    },
+                    "deep_config": {"very_deep_field": "third_deep"},
+                },
+                {
+                    # Fourth item: has default
+                    "nested_field": {
+                        "value_from": {
+                            "env": "MISSING_VAR_3",
+                            "default": "default_value",
+                        }
+                    },
+                    "deep_config": {"very_deep_field": "fourth_deep"},
+                },
+            ],
+        },
+    }
+)
+def test_list_processes_all_elements_and_handles_omit_keys(monkeypatch, yaml_file):
+    # Only set one env var, leave others missing
+    monkeypatch.setenv("AVAILABLE_VAR", "env_substituted_value")
+
+    class OptionalNestedModel(ConfigurationModel):
+        nested_field: Optional[str] = pydantic.Field(default="nested_default")
+        optional_nested_field: Optional[str] = pydantic.Field(default="nested_default")
+        deep_config: DeepNestedModel
+
+    class ListOnlyModel(ConfigurationModel):
+        nested_list: list[OptionalNestedModel]
+
+    _, SettingsModel = create_config_source_models(
+        "config_enabled",
+        "the_namespace",
+        ListOnlyModel,
+        yaml_file=yaml_file,
+    )
+
+    assert SettingsModel().model_dump() == {
+        "the_namespace": {
+            "nested_list": [
+                {
+                    "nested_field": "nested_default",  # Fall back to model default
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "first_deep",
+                        "optional_deep_field": "deep_default",
+                    },
+                },
+                {
+                    "nested_field": "env_substituted_value",  # Env var substitution
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "second_deep",
+                        "optional_deep_field": "deep_default",
+                    },
+                },
+                {
+                    "nested_field": "nested_default",  # Fall back to model default
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "third_deep",
+                        "optional_deep_field": "deep_default",
+                    },
+                },
+                {
+                    "nested_field": "default_value",  # Fall back to model default
+                    "optional_nested_field": "nested_default",
+                    "deep_config": {
+                        "very_deep_field": "fourth_deep",
+                        "optional_deep_field": "deep_default",
+                    },
+                },
+            ],
+        },
     }

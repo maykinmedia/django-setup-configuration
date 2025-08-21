@@ -257,6 +257,31 @@ environments:
                 env: DB_PORT
         name: myapp_db
 
+For optional configuration that should fall back to model defaults when the 
+environment variable is not set, use the ``required`` flag:
+
+.. code-block:: yaml
+
+    user_configuration_enabled: true 
+    user_configuration:
+        username: alice
+        timeout:
+            value_from:
+                env: USER_TIMEOUT
+                required: false
+        debug_mode:
+            value_from:
+                env: DEBUG_ENABLED
+                required: false
+
+If absent, ``required`` is treated as ``true``. When ``required: false`` is specified
+and the environment variable is not found, the field is omitted from the configuration
+entirely, allowing the model's default value to be used instead. If no model default is
+defined, a validation error will occur.
+
+Note that ``required`` and ``default`` cannot both be specified, as they would
+conflict with each other.
+
 Step Registration
 -----------------
 
