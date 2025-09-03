@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.9.0 (2025-09-03)
+==================
+
+* [#78] Added ``value_from`` construct for dynamic environment variable substitution
+  in YAML configuration. Supports optional defaults and graceful fallback to model
+  defaults when environment variables are missing.
+
 0.8.2 (2025-06-04)
 ==================
 
