@@ -225,6 +225,23 @@ This pattern can be used for any field in your configuration model. The environm
 variable ``USER_PASSWORD`` must be set when the configuration is loaded, or an error
 will be raised with guidance on how to fix the issue.
 
+You can also provide an optional default value that will be used when the environment
+variable is not set:
+
+.. code-block:: yaml
+
+    user_configuration_enabled: true 
+    user_configuration:
+        username: alice
+        password:
+            value_from:
+                env: USER_PASSWORD
+                default: default_password
+        timeout:
+            value_from:
+                env: REQUEST_TIMEOUT
+                default: 30
+
 You can also use this pattern for non-sensitive configuration that varies between
 environments:
 
@@ -239,6 +256,31 @@ environments:
             value_from:
                 env: DB_PORT
         name: myapp_db
+
+For optional configuration that should fall back to model defaults when the 
+environment variable is not set, use the ``required`` flag:
+
+.. code-block:: yaml
+
+    user_configuration_enabled: true 
+    user_configuration:
+        username: alice
+        timeout:
+            value_from:
+                env: USER_TIMEOUT
+                required: false
+        debug_mode:
+            value_from:
+                env: DEBUG_ENABLED
+                required: false
+
+If absent, ``required`` is treated as ``true``. When ``required: false`` is specified
+and the environment variable is not found, the field is omitted from the configuration
+entirely, allowing the model's default value to be used instead. If no model default is
+defined, a validation error will occur.
+
+Note that ``required`` and ``default`` cannot both be specified, as they would
+conflict with each other.
 
 Step Registration
 -----------------

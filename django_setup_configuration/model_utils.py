@@ -1,8 +1,9 @@
 import collections
 import os
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, Mapping, Sequence, TypeAlias
 
+import pydantic
 from pydantic import create_model
 from pydantic.fields import Field
 from pydantic_settings import (
@@ -23,7 +24,42 @@ ConfigSourceModels = collections.namedtuple(
 )
 
 
-JSONValue: TypeAlias = dict | list | str | bool | float | int | None
+JSONValue: TypeAlias = (
+    None | bool | int | float | str | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
+)
+
+
+class _OmitKeyType:
+    pass
+
+
+_OMIT_KEY = _OmitKeyType()
+"""Sentinel value to indicate that a key should be omitted from the result."""
+
+
+_NO_DEFAULT = object()
+"""Sentinel value to indicate no default was provided."""
+
+
+class ValueFrom(pydantic.BaseModel):
+    env: str
+    required: bool = pydantic.Field(default=True)
+    default: Any = pydantic.Field(default=_NO_DEFAULT)
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def validate_required_and_default(cls, data):
+        # Check for conflicting options - both required explicitly set and default
+        # specified
+        if isinstance(data, dict):
+            has_explicit_required = "required" in data
+            has_default = "default" in data
+
+            if has_explicit_required and has_default:
+                raise ValueError(
+                    "'required' and 'default' cannot both be specified in 'value_from'."
+                )
+        return data
 
 
 class YamlWithEnvSubstitution(YamlConfigSettingsSource):
@@ -34,49 +70,71 @@ class YamlWithEnvSubstitution(YamlConfigSettingsSource):
         super().__init__(**kwargs)
 
     @staticmethod
-    def substitute(field: JSONValue, field_name: str) -> JSONValue:
+    def substitute(field: JSONValue, field_name: str) -> JSONValue | _OmitKeyType:
+        """Recursively substitute value_from patterns with environment variables."""
+        substitute = YamlWithEnvSubstitution.substitute
         match field:
-            case dict():
-                if "value_from" in field:
-                    if "env" in field["value_from"]:
-                        field_value = field["value_from"]["env"]
-                        if field_value in os.environ:
-                            return os.environ[field_value]
-                        else:
-                            raise ValueError(
-                                f"Required environment variable '{field_value}' not "
-                                f"found for field '{field_name}'.\nSet the environment "
-                                f"variable '{field_value}' or update your YAML "
-                                "configuration."
-                            )
-                    else:
+            case {"value_from": v} if value_from := ValueFrom.model_validate(v):
+                match value_from:
+                    case ValueFrom(env=name) if value := os.getenv(name):
+                        return value
+                    case ValueFrom(default=value) if value is not _NO_DEFAULT:
+                        return value
+                    case ValueFrom(required=False):
+                        # No env var, no default, and not required. Return _OMIT_KEY so
+                        # this key can be filtered out of the final object, to
+                        # facilitate fallback to the model default.
+                        return _OMIT_KEY
+                    case ValueFrom(env=env_var_name):
+                        # Environment variable missing, no default, and required - error
                         raise ValueError(
-                            f"Invalid YAML configuration for field '{field_name}'.\n"
-                            "When using 'value_from', specify 'env' with the "
-                            f"environment variable name:\n  {field_name}:\n    "
-                            "value_from:\n      env: YOUR_ENV_VAR_NAME"
+                            f"Required environment variable '{env_var_name}' not "
+                            f"found for field '{field_name}'.\nSet the environment "
+                            f"variable '{env_var_name}' or update your YAML "
+                            "configuration."
                         )
-                else:
-                    for inner_field_name in field.keys():
-                        inner_field = field[inner_field_name]
-                        field[inner_field_name] = YamlWithEnvSubstitution.substitute(
-                            field=inner_field, field_name=inner_field_name
-                        )
-                    return field
-            case list():
-                objects = field
-                for obj in objects:
-                    YamlWithEnvSubstitution.substitute(field=obj, field_name=field_name)
-                    return field
+            case {**fields}:
+                return {k: substitute(field=v, field_name=k) for k, v in fields.items()}
+            case [*items]:
+                return [
+                    sub
+                    for i, item in enumerate(items)
+                    if (sub := substitute(field=item, field_name=f"{field_name}[{i}]"))
+                    is not _OMIT_KEY
+                ]
             case _:
                 return field
+
+    @staticmethod
+    def _drop_omitted_fields(data: JSONValue | _OmitKeyType) -> JSONValue:
+        """Recursively remove all _OMIT_KEY values from the config data."""
+        match data:
+            case dict():
+                return {
+                    key: YamlWithEnvSubstitution._drop_omitted_fields(value)
+                    for key, value in data.items()
+                    if value is not _OMIT_KEY
+                }
+            case list():
+                return [
+                    YamlWithEnvSubstitution._drop_omitted_fields(item)
+                    for item in data
+                    if item is not _OMIT_KEY
+                ]
+            case _:
+                return data
 
     def _read_file(self, file_path: Path) -> dict[str, Any]:
         # We override this method to perform environment variable substitution before
         # the parent class validates the loaded data against the Pydantic model, which
         # happens in the constructor right after calling self._read_file
         yaml_data = super()._read_file(file_path)
-        return self.substitute(yaml_data, self.namespace)
+
+        # First pass: substitute all value_from patterns
+        substituted_data = self.substitute(yaml_data, self.namespace)
+
+        # Second pass: remove all _OMIT_KEY markers
+        return self._drop_omitted_fields(substituted_data)
 
 
 def create_config_source_models(
