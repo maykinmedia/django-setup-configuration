@@ -66,7 +66,6 @@ class DjangoModelRefInfo(FieldInfo):
         default: Any = NOT_PROVIDED,
         **kwargs,
     ):
-
         try:
             resolved_model = get_model_from_ref(model)
             self.django_field = resolved_model._meta.get_field(field_name)
@@ -120,7 +119,6 @@ class DjangoModelRefInfo(FieldInfo):
             try:
                 TypeAdapter(self.python_type).validate_python(inferred_default)
             except PydanticSchemaGenerationError:
-
                 # For unmapped fields, this is an expected failure, and we can't amend
                 # the annotation because we don't have a base type to amend. In that
                 # case we can just ignore this logic and move on. Otherwise, re-raise

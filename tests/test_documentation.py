@@ -76,6 +76,8 @@ class ConfigModel(ConfigurationModel):
     literal_block_scalar: str = Field(default='{\n  "foo":"bar",\n  "bar":"baz"\n}')
     uuid_field: UUID4 = Field()
 
+    deprecated_field: str = Field(deprecated=True, default="abc")
+
     class Meta:
         django_model_refs = {
             DjangoModel: (
@@ -241,6 +243,11 @@ def test_directive_output(parser, docutils_document):
 
           # REQUIRED: true
           uuid_field: 02907e89-1ba8-43e9-a86c-d0534d461316
+
+          # DEPRECATED
+          # DEFAULT VALUE: "abc"
+          # REQUIRED: false
+          deprecated_field: abc
 
           # REQUIRED: true
           required_int: 1234
@@ -443,3 +450,20 @@ def test_usage_directive_output_with_missing_steps_raises(m, parser, docutils_do
     assert str(excinfo.value) == (
         "No steps configured. Set SETUP_CONFIGURATION_STEPS via your Django settings."
     )
+
+
+@pytest.mark.usefixtures("register_directive")
+def test_deprecated_fields_get_header(parser, docutils_document):
+    rst_content = """
+    .. setup-config-example:: tests.test_documentation.ConfigStep
+    """
+
+    # Parse the content
+    parser.parse(rst_content, docutils_document)
+
+    # Retrieve the generated nodes
+    result = docutils_document.children
+
+    assert len(result) == 1
+    assert isinstance(result[0], nodes.block_quote)
+    assert "# DEPRECATED" in result[0].astext()
