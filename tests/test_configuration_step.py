@@ -19,7 +19,6 @@ def test_constructor_raises_upon_missing_required_fields(required_attribute):
         foo: str
 
     class Foo(BaseConfigurationStep):
-
         verbose_name = "Verbose Name"
         config_model = FooModel
         namespace = "Namespace"

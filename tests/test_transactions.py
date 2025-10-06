@@ -16,14 +16,12 @@ def side_effect_test_func():
 
 
 class TransactionTestConfigurationModel(ConfigurationModel):
-
     username: str
 
 
 class TransactionTestConfigurationStep(
     BaseConfigurationStep[TransactionTestConfigurationModel]
 ):
-
     config_model = TransactionTestConfigurationModel
     enable_setting = "transaction_test_configuration_enabled"
     namespace = "transaction_test_configuration"

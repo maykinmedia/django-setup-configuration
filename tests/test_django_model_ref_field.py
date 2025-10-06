@@ -71,7 +71,6 @@ def test_annotation_overrides_django_type():
     ),
 )
 def test_slug_validation_fails_on_both_pydantic_and_django(invalid_values):
-
     class Config(ConfigurationModel):
         slug = DjangoModelRef(DjangoModel, "slug")
 
@@ -97,7 +96,6 @@ def test_slug_validation_fails_on_both_pydantic_and_django(invalid_values):
     ),
 )
 def test_slug_validation_succeeds_on_both_pydantic_and_django(valid_values):
-
     class Config(ConfigurationModel):
         slug = DjangoModelRef(DjangoModel, "slug")
 
@@ -106,7 +104,6 @@ def test_slug_validation_succeeds_on_both_pydantic_and_django(valid_values):
 
 
 def test_no_default_makes_field_required():
-
     class Config(ConfigurationModel):
         class Meta:
             django_model_refs = {DjangoModel: ["required_int"]}
@@ -119,7 +116,6 @@ def test_no_default_makes_field_required():
 
 
 def test_default_is_taken_from_field():
-
     class Config(ConfigurationModel):
         class Meta:
             django_model_refs = {DjangoModel: ["int_with_default"]}
@@ -132,7 +128,6 @@ def test_default_is_taken_from_field():
 
 
 def test_explicit_default_overrides_model_field_default():
-
     class Config(ConfigurationModel):
         int_with_default = DjangoModelRef(DjangoModel, "int_with_default")
         int_with_overridden_default = DjangoModelRef(
@@ -160,7 +155,6 @@ def test_explicit_default_overrides_model_field_default():
 
 
 def test_blank_fields_have_default_added_as_literal():
-
     class Config(ConfigurationModel):
         blank_bool_with_default = DjangoModelRef(DjangoModel, "blank_bool_with_default")
         nullable_blank_bool_with_default = DjangoModelRef(
@@ -183,7 +177,6 @@ def test_blank_fields_have_default_added_as_literal():
 
 
 def test_null_is_true_sets_default_to_none():
-
     class Config(ConfigurationModel):
         class Meta:
             django_model_refs = {DjangoModel: ["nullable_int"]}
@@ -198,7 +191,6 @@ def test_null_is_true_sets_default_to_none():
 
 
 def test_null_prefers_explicit_default():
-
     class Config(ConfigurationModel):
         class Meta:
             django_model_refs = {DjangoModel: ["nullable_int_with_default"]}
@@ -213,7 +205,6 @@ def test_null_prefers_explicit_default():
 
 
 def test_null_is_true_sets_default_to_none_for_str_fields():
-
     class Config(ConfigurationModel):
         class Meta:
             django_model_refs = {DjangoModel: ["nullable_and_blank_str"]}
@@ -268,7 +259,6 @@ def test_verbose_name_sets_title():
 
 
 def test_unmapped_type_raises():
-
     with pytest.raises(ValueError):
 
         class Config(ConfigurationModel):
@@ -276,7 +266,6 @@ def test_unmapped_type_raises():
 
 
 def test_unmapped_type_does_not_raise_if_annotation_is_overridden():
-
     class Config(ConfigurationModel):
         foreign_key: bool = DjangoModelRef(DjangoModel, "foreign_key")
 
@@ -290,7 +279,6 @@ def test_unmapped_type_does_not_raise_if_annotation_is_overridden():
 
 
 def test_str_with_choices_has_literal_annotation():
-
     class Config(ConfigurationModel):
         str_with_choices_and_default = DjangoModelRef(
             DjangoModel, "str_with_choices_and_default"
@@ -306,7 +294,6 @@ def test_str_with_choices_has_literal_annotation():
 
 
 def test_int_with_choices_has_literal_annotation():
-
     class Config(ConfigurationModel):
         int_with_choices = DjangoModelRef(DjangoModel, "int_with_choices")
 
@@ -320,7 +307,6 @@ def test_int_with_choices_has_literal_annotation():
 
 
 def test_int_with_choices_callable_has_literal_annotation():
-
     class Config(ConfigurationModel):
         int_with_choices_callable = DjangoModelRef(
             DjangoModel, "int_with_choices_callable"
@@ -336,7 +322,6 @@ def test_int_with_choices_callable_has_literal_annotation():
 
 
 def test_int_with_choices_and_override_has_overridden_annotation():
-
     class Config(ConfigurationModel):
         int_with_choices: bool = DjangoModelRef(DjangoModel, "int_with_choices")
 
@@ -350,7 +335,6 @@ def test_int_with_choices_and_override_has_overridden_annotation():
 
 
 def test_str_with_choices_and_blank_allows_empty_string_in_annotation():
-
     class Config(ConfigurationModel):
         str_with_choices_and_blank = DjangoModelRef(
             DjangoModel, "str_with_choices_and_blank"
@@ -366,7 +350,6 @@ def test_str_with_choices_and_blank_allows_empty_string_in_annotation():
 
 
 def test_int_with_choices_and_blank_adds_default_in_annotation():
-
     class Config(ConfigurationModel):
         int_with_choices_and_blank = DjangoModelRef(
             DjangoModel, "int_with_choices_and_blank"
@@ -382,7 +365,6 @@ def test_int_with_choices_and_blank_adds_default_in_annotation():
 
 
 def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annotation():
-
     class Config(ConfigurationModel):
         int_with_choices_and_blank_and_non_choice_default = DjangoModelRef(
             DjangoModel, "int_with_choices_and_blank_and_non_choice_default"
@@ -398,7 +380,6 @@ def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annot
 
 
 def test_choices_with_incorrectly_typed_default_is_not_validated():
-
     class Config(ConfigurationModel):
         str_with_choices_and_incorrectly_typed_default = DjangoModelRef(
             DjangoModel, "str_with_choices_and_incorrectly_typed_default"

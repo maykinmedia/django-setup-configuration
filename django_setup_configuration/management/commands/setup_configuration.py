@@ -99,8 +99,7 @@ class Command(BaseCommand):
                 steps_with_invalid_requirements.append(exc.step)
 
             raise CommandError(
-                f"Failed to validate requirements for {len(exc_group.exceptions)}"
-                " steps"
+                f"Failed to validate requirements for {len(exc_group.exceptions)} steps"
             )
 
         self.stdout.write(

@@ -4,7 +4,6 @@ from django_setup_configuration import BaseConfigurationStep, ConfigurationModel
 
 
 class UserConfigurationModel(ConfigurationModel):
-
     class Meta:
         django_model_refs = {
             User: [
