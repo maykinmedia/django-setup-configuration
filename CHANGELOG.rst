@@ -2,6 +2,11 @@
 Changelog
 =========
 
+0.9.1 (2025-10-07)
+==================
+
+* [mozilla-django-oidc-db#154] Added ``DEPRECATED`` header to example documentation for deprecated fields.
+
 0.9.0 (2025-09-03)
 ==================
 
