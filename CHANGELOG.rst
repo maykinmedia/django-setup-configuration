@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.10.0 (2025-10-09)
+==================
+
+* Make sure ``ConfigModel`` fields that have ``deprecated=True`` are marked as deprecated
+  in generated YAML example documentation
+
 0.9.0 (2025-09-03)
 ==================
 

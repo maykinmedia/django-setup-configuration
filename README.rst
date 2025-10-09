@@ -3,7 +3,7 @@
 Welcome to Django setup configuration's documentation!
 ======================================================
 
-:Version: 0.9.0
+:Version: 0.10.0
 :Source: https://github.com/maykinmedia/django-setup-configuration
 :Keywords: Configuration
 :PythonVersion: 3.10
