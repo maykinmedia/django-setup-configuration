@@ -2,8 +2,14 @@
 Changelog
 =========
 
+0.11.0 (2025-10-20)
+===================
+
+* Support specifying ``deprecated`` as a string by displaying the string as part of the
+  generated YAML example documentation
+
 0.10.0 (2025-10-09)
-==================
+===================
 
 * Make sure ``ConfigModel`` fields that have ``deprecated=True`` are marked as deprecated
   in generated YAML example documentation
