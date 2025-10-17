@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.11.0 (2025-10-17)
+==================
+
+* Support specifying ``deprecated`` as a string by displaying the string as part of the
+  generated YAML example documentation
+
 0.10.0 (2025-10-09)
 ==================
 
