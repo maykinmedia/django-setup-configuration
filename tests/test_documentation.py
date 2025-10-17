@@ -77,6 +77,9 @@ class ConfigModel(ConfigurationModel):
     uuid_field: UUID4 = Field()
 
     deprecated_field: str = Field(deprecated=True, default="abc")
+    deprecated_field_with_str: str = Field(
+        deprecated="this was moved to ...", default="def"
+    )
 
     class Meta:
         django_model_refs = {
@@ -248,6 +251,11 @@ def test_directive_output(parser, docutils_document):
           # DEFAULT VALUE: "abc"
           # REQUIRED: false
           deprecated_field: abc
+
+          # DEPRECATED: this was moved to ...
+          # DEFAULT VALUE: "def"
+          # REQUIRED: false
+          deprecated_field_with_str: def
 
           # REQUIRED: true
           required_int: 1234
@@ -467,3 +475,4 @@ def test_deprecated_fields_get_header(parser, docutils_document):
     assert len(result) == 1
     assert isinstance(result[0], nodes.block_quote)
     assert "# DEPRECATED" in result[0].astext()
+    assert "# DEPRECATED: this was moved to ..." in result[0].astext()

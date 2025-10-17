@@ -132,10 +132,14 @@ def _insert_example_with_comments(
     example_data.yaml_set_comment_before_after_key(field_name, before="\n")
 
     if field_info.deprecated:
+        comment = "DEPRECATED"
+        if isinstance(field_info.deprecated, str):
+            comment = f"{comment}: {field_info.deprecated}"
+
         _yaml_set_wrapped_comment(
             example_data,
             field_name,
-            "DEPRECATED",
+            comment,
             80,
             indent=depth * 2,
         )
