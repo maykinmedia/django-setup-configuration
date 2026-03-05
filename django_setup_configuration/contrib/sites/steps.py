@@ -38,7 +38,7 @@ class SitesConfigurationStep(BaseConfigurationStep):
             # We have no current site, which means there is no site pointed to by
             # settings.SITE_ID -- however, `get_current()` expects a Site with that ID
             # to exist, so we have to make sure the created site receives that ID.
-            current_site.pk = getattr(settings, "SITE_ID")
+            current_site.pk = settings.SITE_ID
 
         current_site.domain = first_site.domain
         current_site.name = first_site.name

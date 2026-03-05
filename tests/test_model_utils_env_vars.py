@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pydantic
 import pytest
 
@@ -10,12 +8,12 @@ from testapp.models import SomeModel
 
 class DeepNestedModel(ConfigurationModel):
     very_deep_field: str
-    optional_deep_field: Optional[str] = pydantic.Field(default="deep_default")
+    optional_deep_field: str | None = pydantic.Field(default="deep_default")
 
 
 class NestedModel(ConfigurationModel):
     nested_field: str
-    optional_nested_field: Optional[str] = pydantic.Field(default="nested_default")
+    optional_nested_field: str | None = pydantic.Field(default="nested_default")
     deep_config: DeepNestedModel
 
 
@@ -29,7 +27,7 @@ class RootConfigModel(ConfigurationModel):
     required_field: str
 
     # Optional field with explicit default
-    optional_field: Optional[str] = pydantic.Field(default="root_default")
+    optional_field: str | None = pydantic.Field(default="root_default")
 
     # Nested configuration
     nested_config: NestedModel
@@ -404,7 +402,7 @@ def test_value_pointing_to_env_is_loaded_from_env_with_list(monkeypatch, yaml_fi
 )
 def test_raise_when_value_from_is_not_dict(yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     with pytest.raises(pydantic.ValidationError) as error:
         _, SettingsModel = create_config_source_models(
@@ -438,7 +436,7 @@ def test_raise_when_value_from_is_not_dict(yaml_file):
 )
 def test_default_value_is_used_when_env_var_not_found(yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     _, SettingsModel = create_config_source_models(
         "config_enabled",
@@ -469,7 +467,7 @@ def test_default_value_is_used_when_env_var_not_found(yaml_file):
 )
 def test_default_null_value_is_used_when_env_var_not_found(yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     _, SettingsModel = create_config_source_models(
         "config_enabled",
@@ -507,10 +505,8 @@ def test_default_null_value_is_used_when_env_var_not_found(yaml_file):
 )
 def test_null_default_differs_from_absent_default(yaml_file):
     class MixedModel(ConfigurationModel):
-        field_with_null_default: Optional[str] = pydantic.Field(
-            default="model_default_1"
-        )
-        field_with_no_default_but_optional: Optional[str] = pydantic.Field(
+        field_with_null_default: str | None = pydantic.Field(default="model_default_1")
+        field_with_no_default_but_optional: str | None = pydantic.Field(
             default="model_default_2"
         )
         required_field: str
@@ -548,7 +544,7 @@ def test_null_default_differs_from_absent_default(yaml_file):
 )
 def test_env_var_takes_precedence_over_default(monkeypatch, yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     monkeypatch.setenv("PRESENT_VAR", "env_value")
 
@@ -581,7 +577,7 @@ def test_env_var_takes_precedence_over_default(monkeypatch, yaml_file):
 )
 def test_required_false_falls_back_to_model_default_on_missing_env(yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     _, SettingsModel = create_config_source_models(
         "config_enabled",
@@ -614,7 +610,7 @@ def test_required_false_falls_back_to_model_default_on_missing_env(yaml_file):
 )
 def test_required_false_uses_env_var_when_available(monkeypatch, yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     monkeypatch.setenv("PRESENT_VAR", "env_value")
 
@@ -648,7 +644,7 @@ def test_required_false_uses_env_var_when_available(monkeypatch, yaml_file):
 )
 def test_raise_when_required_and_default_both_specified(yaml_file):
     class SimpleOptionalModel(ConfigurationModel):
-        foo: Optional[str] = pydantic.Field(default="default_foo")
+        foo: str | None = pydantic.Field(default="default_foo")
 
     with pytest.raises(pydantic.ValidationError) as error:
         _, SettingsModel = create_config_source_models(
@@ -723,8 +719,8 @@ def test_list_processes_all_elements_and_handles_omit_keys(monkeypatch, yaml_fil
     monkeypatch.setenv("AVAILABLE_VAR", "env_substituted_value")
 
     class OptionalNestedModel(ConfigurationModel):
-        nested_field: Optional[str] = pydantic.Field(default="nested_default")
-        optional_nested_field: Optional[str] = pydantic.Field(default="nested_default")
+        nested_field: str | None = pydantic.Field(default="nested_default")
+        optional_nested_field: str | None = pydantic.Field(default="nested_default")
         deep_config: DeepNestedModel
 
     class ListOnlyModel(ConfigurationModel):

@@ -1,6 +1,6 @@
 import difflib
 import textwrap
-from typing import Literal, Union
+from typing import Literal
 from unittest import mock
 from unittest.mock import patch
 
@@ -64,13 +64,13 @@ class ConfigModel(ConfigurationModel):
     array_field: list[NestedConfigurationModel] = DjangoModelRef(
         DjangoModel, field_name="array_field"
     )
-    union_of_models: Union[NestedConfigurationModel, NestedConfigurationModel2] = Field(
+    union_of_models: NestedConfigurationModel | NestedConfigurationModel2 = Field(
         description="union of models"
     )
     union_of_models2: NestedConfigurationModel | NestedConfigurationModel2 = Field(
         description="union of models with |"
     )
-    union_of_primitives: Union[str, int] = Field()
+    union_of_primitives: str | int = Field()
     sequence_of_primitives: list[int] = Field()
     literal: Literal["foo", "bar", "bar"] = Field()
     literal_block_scalar: str = Field(default='{\n  "foo":"bar",\n  "bar":"baz"\n}')

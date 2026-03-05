@@ -1,6 +1,7 @@
 import datetime
 import decimal
-from typing import Any, Literal, Mapping
+from collections.abc import Mapping
+from typing import Any, Literal
 
 from django.apps import apps as django_apps
 from django.core.exceptions import FieldDoesNotExist
@@ -73,7 +74,7 @@ class DjangoModelRefInfo(FieldInfo):
             raise ValueError(
                 f"Field '{field_name}' does not exist in model "
                 f"{model if isinstance(model, str) else model.__class__}"
-            )
+            ) from None
 
         self.model = model
         self.field_name = field_name
@@ -163,7 +164,7 @@ class DjangoModelRefInfo(FieldInfo):
         django_field: Field,
     ):
         """Map Django field types to Python types."""
-        if choices := getattr(django_field, "choices"):
+        if choices := django_field.choices:
             choice_values = tuple(
                 choice[0]
                 for choice in (choices if not callable(choices) else choices())

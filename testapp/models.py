@@ -25,8 +25,8 @@ class DjangoModel(models.Model):
         default=UUID("125a77ef-d158-4bea-b036-8dcdbdde428d")
     )
 
-    nullable_str = models.CharField(null=True, blank=False, max_length=1)
-    nullable_and_blank_str = models.CharField(null=True, blank=False, max_length=1)
+    nullable_str = models.CharField(null=True, blank=False, max_length=1)  # noqa: DJ001
+    nullable_and_blank_str = models.CharField(null=True, blank=False, max_length=1)  # noqa: DJ001
     blank_bool_with_default = models.BooleanField(blank=True, default=False)
     nullable_blank_bool_with_default = models.BooleanField(
         blank=True, default=None, null=True
@@ -92,6 +92,12 @@ class DjangoModel(models.Model):
     )
     unmapped_django_field_without_default_with_blank = UnmappedDjangoField(blank=True)
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.pk})"
+
 
 class SomeModel(models.Model):
     foo = models.CharField(max_length="20")
+
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.pk})"

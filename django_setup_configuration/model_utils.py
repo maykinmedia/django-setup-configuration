@@ -1,7 +1,8 @@
 import collections
 import os
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Sequence, TypeAlias
+from typing import Any, TypeAlias
 
 import pydantic
 from pydantic import create_model

@@ -8,7 +8,7 @@ Welcome to Django setup configuration's documentation!
 :Keywords: Configuration
 :PythonVersion: 3.10
 
-|build-status| |code-quality| |black| |coverage| |docs|
+|build-status| |code-quality| |ruff| |coverage| |docs|
 
 |python-versions| |django-versions| |pypi-version|
 
@@ -86,7 +86,7 @@ Define a Configuration Model
         # required for fields that can not be unambiguously mapped to a Python type,
         # such as relational fields or third-party fields).
         is_staff: Optional[int] = DjangoModelRef("auth.User", "username", default=0)
-        
+
         # If you have no need for overriding any of the inferred attributes, you can reference model fields in a Meta class
         class Meta:
             django_model_refs = {
@@ -101,7 +101,7 @@ For regular Pydantic fields, you must explicitly configure defaults using  `Fiel
 (default=...)` or `Field(default_factory=lambda: ...)` as specified in  the  `Pydantic
 documentation <https://docs.pydantic.dev/2.10/concepts/fields/#default-values>`_.
 
-**NOTE:** Marking a field as ``Optional`` or using ``... | None`` does *not* automatically 
+**NOTE:** Marking a field as ``Optional`` or using ``... | None`` does *not* automatically
 set the field's default to `None`. You must set this explicitly if you want the field to
 be optional:
 
@@ -122,7 +122,7 @@ similar to regular Pydantic fields:
     class ConfigModel(ConfigurationModel):
         # Explicit string default
         field_with_explicit_default = DjangoModelRef(SomeModel, "some_field", default="foobar")
-        
+
         # Explicit default factory for a list
         field_with_explicit_default_factory: list[str] = DjangoModelRef(
             SomeModel, "some_other_field", default_factory=list
@@ -133,7 +133,7 @@ When no explicit default is provided, the default is derived from the referenced
 1. If the Django field has an explicit default, that default will be used.
 
 2. If no explicit default is set but the field has ``null=True`` set:
-        
+
         a. The default will be set to ``None``
         b. The field will be optional
 
@@ -173,7 +173,7 @@ Create a Configuration Step
                     password=model.password,
                     is_superuser=True,
                 )
-            
+
             for group_name in model.add_to_groups:
                 group = Group.objects.get(name=group_name)
                 group.user_set.add(user)
@@ -185,7 +185,7 @@ Create a YAML configuration file with your settings:
 
 .. code-block:: yaml
 
-    user_configuration_enabled: true 
+    user_configuration_enabled: true
     user_configuration:
         username: alice
         password: supersecret
@@ -205,13 +205,13 @@ key which encapsulates the configuration model's attributes.
 Environment Variable Substitution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can reference environment variables in your YAML configuration using the 
+You can reference environment variables in your YAML configuration using the
 ``value_from`` pattern. This allows you to keep sensitive values like passwords out of
 your configuration files:
 
 .. code-block:: yaml
 
-    user_configuration_enabled: true 
+    user_configuration_enabled: true
     user_configuration:
         username: alice
         password:
@@ -230,7 +230,7 @@ variable is not set:
 
 .. code-block:: yaml
 
-    user_configuration_enabled: true 
+    user_configuration_enabled: true
     user_configuration:
         username: alice
         password:
@@ -257,12 +257,12 @@ environments:
                 env: DB_PORT
         name: myapp_db
 
-For optional configuration that should fall back to model defaults when the 
+For optional configuration that should fall back to model defaults when the
 environment variable is not set, use the ``required`` flag:
 
 .. code-block:: yaml
 
-    user_configuration_enabled: true 
+    user_configuration_enabled: true
     user_configuration:
         username: alice
         timeout:
@@ -329,7 +329,7 @@ Programmatically
         yaml_source="/path/to/config.yaml"
     )
     # Validate that the configuration settings can be loaded from the source
-    runner.validate_all_requirements() 
+    runner.validate_all_requirements()
 
     # Execute all steps
     runner.execute_all()
@@ -348,8 +348,8 @@ Direct Model Instantiation
 
     def test_execute_step():
         config_model = UserConfigurationModel(
-            username="alice", 
-            password="supersecret", 
+            username="alice",
+            password="supersecret",
             add_to_groups=["moderators", "editors"]
         )
         step = UserConfigurationStep()
@@ -361,7 +361,7 @@ Model Instantiation from an object or YAML
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
-    
+
     from django_setup_configuration.test_utils import build_step_config_from_sources
 
     def test_execute_step():
@@ -373,10 +373,10 @@ Model Instantiation from an object or YAML
                 'groups': ['moderators', 'editors']
             }
         }
-        config_model = build_step_config_from_sources(UserConfigurationStep, 
+        config_model = build_step_config_from_sources(UserConfigurationStep,
             object_source=config,
             # or yaml_source="/path/to/file.yaml"
-            )   
+            )
         step = UserConfigurationStep()
         step.execute(config_model_instance)
 
@@ -391,7 +391,7 @@ Using Test Helpers
 
     def test_execute_step():
         execute_single_step(
-            UserConfigurationStep, 
+            UserConfigurationStep,
             yaml_source="/path/to/test_config.yaml"
         )
 
@@ -436,8 +436,9 @@ directory to the python path (or use ``python -m django <command>``):
      :alt: Code quality checks
      :target: https://github.com/maykinmedia/django-setup-configuration/actions?query=workflow%3A%22Code+quality+checks%22
 
-.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
+.. |ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/django-setup-configuration/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/maykinmedia/django-setup-configuration

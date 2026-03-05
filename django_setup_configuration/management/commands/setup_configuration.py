@@ -47,7 +47,7 @@ class Command(BaseCommand):
         try:
             runner = SetupConfigurationRunner(yaml_source=options["yaml_file"])
         except Exception as exc:
-            raise CommandError(str(exc))
+            raise CommandError(str(exc)) from None
 
         if not runner.configured_steps:
             raise CommandError("No steps configured, aborting.")
@@ -100,7 +100,7 @@ class Command(BaseCommand):
 
             raise CommandError(
                 f"Failed to validate requirements for {len(exc_group.exceptions)} steps"
-            )
+            ) from None
 
         self.stdout.write(
             "Valid configuration settings found for all steps.", self.style.SUCCESS
