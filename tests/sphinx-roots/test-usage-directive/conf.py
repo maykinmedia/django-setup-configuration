@@ -17,4 +17,5 @@ extensions = [
     "sphinx.ext.intersphinx",
     "django_setup_configuration.documentation.setup_config_example",
     "django_setup_configuration.documentation.setup_config_usage",
+    "django_setup_configuration.documentation.validate_config_example",
 ]

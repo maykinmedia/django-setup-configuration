@@ -21,6 +21,9 @@ from django_setup_configuration.documentation.setup_config_example import (
 from django_setup_configuration.documentation.setup_config_usage import (
     SetupConfigUsageDirective,
 )
+from django_setup_configuration.documentation.validate_config_example import (
+    ValidateConfigExampleDirective,
+)
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
 from testapp.models import DjangoModel
@@ -129,6 +132,9 @@ def parser():
 def register_directive():
     directives.register_directive("setup-config-example", SetupConfigExampleDirective)
     directives.register_directive("setup-config-usage", SetupConfigUsageDirective)
+    directives.register_directive(
+        "validate-config-example", ValidateConfigExampleDirective
+    )
 
 
 @pytest.fixture()
@@ -476,3 +482,76 @@ def test_deprecated_fields_get_header(parser, docutils_document):
     assert isinstance(result[0], nodes.block_quote)
     assert "# DEPRECATED" in result[0].astext()
     assert "# DEPRECATED: this was moved to ..." in result[0].astext()
+
+
+@pytest.mark.usefixtures("register_directive")
+def test_validate_config_example_success(parser, docutils_document):
+    rst_content = """
+    .. validate-config-example:: tests.test_documentation.ConfigStep
+
+        test_config_enable: true
+        test_config:
+            required_int: 1
+            array_field:
+                - foo: bar
+            union_of_models:
+                foo: baz
+            union_of_models2:
+                foo: baz
+            union_of_primitives: 1
+            sequence_of_primitives:
+                - 2
+                - 3
+            literal: foo
+            uuid_field: 3fc1559a-b571-4913-a7a5-e7c86c167138
+            field_with_help_text: 1
+            str_with_localized_default: foo
+            uuid_field_with_default: 3fc1559a-b571-4913-a7a5-e7c86c167138
+    """
+
+    parser.parse(rst_content, docutils_document)
+
+    result = docutils_document.children
+
+    # The directive should output the same YAML, because it is valid according to the
+    # configmodel
+    expected = textwrap.dedent(
+        """\
+        test_config_enable: true
+        test_config:
+            required_int: 1
+            array_field:
+                - foo: bar
+            union_of_models:
+                foo: baz
+            union_of_models2:
+                foo: baz
+            union_of_primitives: 1
+            sequence_of_primitives:
+                - 2
+                - 3
+            literal: foo
+            uuid_field: 3fc1559a-b571-4913-a7a5-e7c86c167138
+            field_with_help_text: 1
+            str_with_localized_default: foo
+            uuid_field_with_default: 3fc1559a-b571-4913-a7a5-e7c86c167138"""
+    )
+
+    assert_example(result[0].astext(), expected)
+
+
+@pytest.mark.usefixtures("register_directive")
+def test_validate_config_example_fail(parser, docutils_document):
+    rst_content = """
+    .. validate-config-example:: tests.test_documentation.ConfigStep
+
+        test_config_enable: true
+        test_config:
+            # invalid type
+            required_int: bar
+    """
+
+    with pytest.raises(ValidationError):
+        # Parse the content, should raise a `ValidationError`
+        # because the example provides the wrong type for `required_int`
+        parser.parse(rst_content, docutils_document)
