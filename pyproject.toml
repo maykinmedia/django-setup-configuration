@@ -98,16 +98,12 @@ section-order = [
 [tool.ruff.lint.isort.sections]
 "django" = ["django"]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "testapp.settings"
 markers = [
     "yaml_configuration: marks tests as using a specified YAML configuration"
 ]
-
-[tool.pytest]
-testpaths = ["tests"]
-DJANGO_SETTINGS_MODULE = "testapp.settings"
 
 [tool.bumpversion]
 current_version = "0.11.0"
