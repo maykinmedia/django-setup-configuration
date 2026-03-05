@@ -8,10 +8,7 @@ from types import NoneType, UnionType
 from typing import (
     Annotated,
     Any,
-    Dict,
-    List,
     Literal,
-    Type,
     Union,
     get_args,
     get_origin,
@@ -35,7 +32,7 @@ from django_setup_configuration.configuration import BaseConfigurationStep
 NO_EXAMPLE = object()
 
 
-def extract_literal_values(annotation: Type | None) -> list:
+def extract_literal_values(annotation: type | None) -> list:
     """
     Checks if the given type annotation is a Literal or contains Literals.
     If Literals are found, extracts all their values into a list.
@@ -60,7 +57,7 @@ def extract_literal_values(annotation: Type | None) -> list:
 @dataclass
 class PolymorphicExample:
     example: Any
-    commented_out_examples: List[Any]
+    commented_out_examples: list[Any]
 
 
 def _get_default_from_field_info(field_info: FieldInfo) -> Any:
@@ -218,7 +215,7 @@ def _insert_as_full_comment(
     )
 
 
-def _generate_model_example(model: Type[BaseModel], depth: int = 0) -> Dict[str, Any]:
+def _generate_model_example(model: type[BaseModel], depth: int = 0) -> dict[str, Any]:
     """
     Generates example data for a Pydantic model.
 
@@ -311,7 +308,7 @@ def _process_field_type(
             example=data, commented_out_examples=commented_out_examples
         )
 
-    if get_origin(field_type) == list:
+    if get_origin(field_type) is list:
         items = [
             _process_field_type(
                 get_args(field_type)[0], field_info, field_name, depth + 1

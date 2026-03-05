@@ -35,10 +35,12 @@ def test_meta_spec_is_equivalent_to_inline_fields():
             }
 
     for field_meta, field_inline in zip(
-        ConfigMeta.model_fields.values(), ConfigInline.model_fields.values()
+        ConfigMeta.model_fields.values(),
+        ConfigInline.model_fields.values(),
+        strict=True,
     ):
         assert field_meta.field_name == field_inline.field_name
-        assert field_meta.annotation == field_inline.annotation
+        assert field_meta.annotation == field_inline.annotation  # noqa: E721
         assert field_meta.default == field_inline.default
         assert field_meta.description == field_inline.description
         assert field_meta.is_required() == field_inline.is_required()
@@ -50,7 +52,7 @@ def test_annotation_overrides_django_type():
 
     field = Config.model_fields["overriden_str"]
 
-    assert field.annotation == str
+    assert field.annotation is str
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -110,7 +112,7 @@ def test_no_default_makes_field_required():
 
     field = Config.model_fields["required_int"]
 
-    assert field.annotation == int
+    assert field.annotation is int
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -122,7 +124,7 @@ def test_default_is_taken_from_field():
 
     field = Config.model_fields["int_with_default"]
 
-    assert field.annotation == int
+    assert field.annotation is int
     assert field.default == 42
     assert field.is_required() is False
 
@@ -144,8 +146,8 @@ def test_explicit_default_overrides_model_field_default():
 
     assert (
         int_with_default_field.annotation
-        == int_with_overridden_default_field.annotation
-        == int
+        is int_with_overridden_default_field.annotation
+        is int
     )
     assert (
         int_with_default_field.is_required()
@@ -166,8 +168,8 @@ def test_blank_fields_have_default_added_as_literal():
         "nullable_blank_bool_with_default"
     ]
 
-    assert blank_bool_with_default.annotation == bool
-    assert nullable_blank_bool_with_default.annotation == bool | None
+    assert blank_bool_with_default.annotation is bool
+    assert nullable_blank_bool_with_default.annotation == bool | None  # noqa: E721
 
     assert (
         blank_bool_with_default.is_required()
@@ -185,7 +187,7 @@ def test_null_is_true_sets_default_to_none():
 
     assert field.title == "nullable int"
     assert field.description is None
-    assert field.annotation == int | None
+    assert field.annotation == int | None  # noqa: E721
     assert field.default is None
     assert field.is_required() is False
 
@@ -199,7 +201,7 @@ def test_null_prefers_explicit_default():
 
     assert field.title == "nullable int with default"
     assert field.description is None
-    assert field.annotation == int
+    assert field.annotation is int
     assert field.default == 42
     assert field.is_required() is False
 
@@ -213,7 +215,7 @@ def test_null_is_true_sets_default_to_none_for_str_fields():
 
     assert field.title == "nullable and blank str"
     assert field.description is None
-    assert field.annotation == str | None
+    assert field.annotation == str | None  # noqa: E721
     assert field.default is None
     assert field.is_required() is False
 
@@ -227,7 +229,7 @@ def test_blank_is_true_null_is_false_sets_default_to_empty_str_for_str_fields():
 
     assert field.title == "blank str"
     assert field.description is None
-    assert field.annotation == str
+    assert field.annotation is str
     assert field.default == ""
     assert field.is_required() is False
 
@@ -240,7 +242,7 @@ def test_help_text_sets_description():
 
     assert field.title == "field with help text"
     assert field.description == "This is the help text"
-    assert field.annotation == int
+    assert field.annotation is int
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -253,7 +255,7 @@ def test_verbose_name_sets_title():
 
     assert field.title == "The Verbose Name"
     assert field.description is None
-    assert field.annotation == int
+    assert field.annotation is int
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -273,7 +275,7 @@ def test_unmapped_type_does_not_raise_if_annotation_is_overridden():
 
     assert field.title == "foreign key"
     assert field.description is None
-    assert field.annotation == bool
+    assert field.annotation is bool
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -288,7 +290,7 @@ def test_str_with_choices_has_literal_annotation():
 
     assert field.title == "str with choices and default"
     assert field.description is None
-    assert field.annotation == Literal["foo", "bar"]
+    assert field.annotation is Literal["foo", "bar"]
     assert field.default == StrChoices.bar
     assert field.is_required() is False
 
@@ -301,7 +303,7 @@ def test_int_with_choices_has_literal_annotation():
 
     assert field.title == "int with choices"
     assert field.description is None
-    assert field.annotation == Literal[1, 8]
+    assert field.annotation is Literal[1, 8]
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -316,7 +318,7 @@ def test_int_with_choices_callable_has_literal_annotation():
 
     assert field.title == "int with choices callable"
     assert field.description is None
-    assert field.annotation == Literal[1, 8]
+    assert field.annotation is Literal[1, 8]
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -329,7 +331,7 @@ def test_int_with_choices_and_override_has_overridden_annotation():
 
     assert field.title == "int with choices"
     assert field.description is None
-    assert field.annotation == bool
+    assert field.annotation is bool
     assert field.default == PydanticUndefined
     assert field.is_required() is True
 
@@ -344,7 +346,7 @@ def test_str_with_choices_and_blank_allows_empty_string_in_annotation():
 
     assert field.title == "str with choices and blank"
     assert field.description is None
-    assert field.annotation == Literal["foo", "bar"] | Literal[""]
+    assert field.annotation is Literal["foo", "bar"] | Literal[""]
     assert field.default == ""
     assert field.is_required() is False
 
@@ -359,7 +361,7 @@ def test_int_with_choices_and_blank_adds_default_in_annotation():
 
     assert field.title == "int with choices and blank"
     assert field.description is None
-    assert field.annotation == Literal[1, 8] | None
+    assert field.annotation is Literal[1, 8] | None
     assert field.default is None
     assert field.is_required() is False
 
@@ -374,7 +376,7 @@ def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annot
 
     assert field.title == "int with choices and blank and non choice default"
     assert field.description is None
-    assert field.annotation == Literal[1, 8] | Literal[42]
+    assert field.annotation is Literal[1, 8] | Literal[42]
     assert field.default == 42
     assert field.is_required() is False
 

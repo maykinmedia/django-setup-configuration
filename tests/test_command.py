@@ -358,7 +358,7 @@ def test_command_with_failing_requirements_and_validate_reports_errors(
     )
 
     stdout, stderr = StringIO(), StringIO()
-    with pytest.raises(CommandError) as exc:
+    with pytest.raises(CommandError):
         call_command(
             "setup_configuration",
             yaml_file=yaml_path,

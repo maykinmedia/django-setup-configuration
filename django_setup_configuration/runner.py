@@ -1,10 +1,11 @@
 import inspect
 import logging
+from collections.abc import Generator
 from dataclasses import dataclass
 from functools import partial
 from os import PathLike
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -95,10 +96,10 @@ class SetupConfigurationRunner:
                 step_classes.append(
                     import_string(step) if isinstance(step, str) else step
                 )
-            except ImportError:
+            except ImportError as exc:  # noqa: PERF203
                 raise ConfigurationException(
                     f"Your configured steps contain `{step}`, which cannot be imported"
-                )
+                ) from exc
 
         initialized_steps = []
         for step_cls in step_classes:
@@ -132,7 +133,7 @@ class SetupConfigurationRunner:
                 step
             ].config_settings_source(**settings_object)
         except ValidationError as exc:
-            raise PrerequisiteFailed(step=step, validation_error=exc)
+            raise PrerequisiteFailed(step=step, validation_error=exc) from exc
 
         # The step's model is located under the namespace key at the root
         return getattr(model_settings_instance, step.namespace)
@@ -211,7 +212,7 @@ class SetupConfigurationRunner:
         for step in self.enabled_steps:
             try:
                 self._validate_requirements_for_step(step)
-            except PrerequisiteFailed as exc:
+            except PrerequisiteFailed as exc:  # noqa: PERF203
                 exceptions.append(exc)
 
         if exceptions:

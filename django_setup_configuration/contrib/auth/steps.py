@@ -24,7 +24,6 @@ class UserConfigurationStep(BaseConfigurationStep):
     def execute(self, model):
 
         for user_item in model.users:
-
             User = get_user_model()
             username_field = User.USERNAME_FIELD
             username_value = getattr(user_item, username_field)
@@ -53,5 +52,6 @@ class UserConfigurationStep(BaseConfigurationStep):
                 warnings.warn(
                     "\nThe password for the automatically created "
                     f"user {username_value} is currently set to a hardcoded default. "
-                    "Make sure to change the password in the admin panel.\n\n"
+                    "Make sure to change the password in the admin panel.\n\n",
+                    stacklevel=2,
                 )
