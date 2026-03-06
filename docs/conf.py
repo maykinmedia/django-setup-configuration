@@ -58,6 +58,7 @@ extensions = [
     "sphinx.ext.todo",
     "django_setup_configuration.documentation.setup_config_example",
     "django_setup_configuration.documentation.setup_config_usage",
+    "django_setup_configuration.documentation.validate_config_example",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

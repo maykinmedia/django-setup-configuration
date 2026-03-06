@@ -3,11 +3,19 @@
 Configuration Documentation
 ===========================
 
-The library provides two Sphinx directives:
+The library provides three Sphinx directives:
 
-1. ``setup-config-example`` - Generates (and validates) an example configuration file in YAML format for a given ``ConfigurationStep``. This includes information about field names, possible values, default values, and descriptions, helping clients understand available configuration options.
+1. ``setup-config-example`` - Generates (and validates) an example configuration file in YAML
+format for a given ``ConfigurationStep``. This includes information about field names,
+possible values, default values, and descriptions, helping clients understand available configuration options.
 
-2. ``setup-config-usage`` - Generates basic usage information and lists all configured steps with metadata and example YAMLs (it does this by wrapping ``setup-config-example`` so the examples will be validated as well). This provides a complete overview for users who want to bootstrap their installation.
+2. ``setup-config-usage`` - Generates basic usage information and lists all configured
+steps with metadata and example YAMLs (it does this by wrapping ``setup-config-example``
+so the examples will be validated as well). This provides a complete overview for
+users who want to bootstrap their installation.
+
+3. ``validate-config-example`` - Validates a given YAML configuration example for a given
+``ConfigurationStep`` and displays the YAML configuration in a code block.
 
 Using setup-config-example
 --------------------------
@@ -64,7 +72,7 @@ in your Sphinx `conf.py` file, for instance like this:
     # ...
     import django
     from django.conf import settings
-        
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_settings_module")
     django.setup()
 
@@ -76,9 +84,9 @@ Then display usage information using the directive:
 .. code-block:: rst
 
     .. setup-config-usage::
-        
 
-This generates a "how to" introduction for invoking the management command, 
+
+This generates a "how to" introduction for invoking the management command,
 followed by sections for each configured step with example YAML configurations.
 
 By default, the directive will output a full documentation page, but you can hide individual
@@ -102,3 +110,45 @@ For example, to hide the usage section, show the steps without autodoc:
 
     The titles for the step sections will be taken from the step's ``verbose_title`` field,
     whereas the descriptions are taken from the step class's docstring (if present).
+
+Using validate-config-example
+-----------------------------
+
+If the generated examples are not enough and you would like to include more specific
+examples in your documentation, you can use the ``validate-config-example`` directive to
+pass your own examples, which are automatically validated for the given ``ConfigurationStep``
+by the directive.
+
+First, add the extension and its requirements to ``conf.py`` in your documentation directory:
+
+.. code-block:: python
+
+    extensions = [
+        ...
+        "sphinx.ext.autodoc",
+        "django_setup_configuration.documentation.validate_config_example",
+        ...
+    ]
+
+
+Then display a YAML example using the directive (in the example of the ``SitesConfigurationStep``):
+
+.. code-block:: rst
+
+    .. validate-config-example:: django_setup_configuration.contrib.sites.steps.SitesConfigurationStep
+
+        sites_config_enable: true
+        sites_config:
+          items:
+            - domain: example-domain.localhost
+              name: Example Domain
+
+The output will be a code block with the passed YAML configuration:
+
+.. validate-config-example:: django_setup_configuration.contrib.sites.steps.SitesConfigurationStep
+
+    sites_config_enable: true
+    sites_config:
+      items:
+        - domain: example-domain.localhost
+          name: Example Domain
