@@ -2,6 +2,18 @@
 Changelog
 =========
 
+0.12.0 (2026-03-09)
+===================
+
+**New features**
+
+* [#92] Add sphinx directive ``validate-config-example`` to validate and display a given YAML config example
+  (see :ref:`config_docs` for more information).
+
+**Maintenance**
+
+* Replace black, isort and flake8 with ruff
+
 0.11.0 (2025-10-20)
 ===================
 
