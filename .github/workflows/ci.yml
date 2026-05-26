@@ -20,7 +20,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        python: ["3.10", "3.11", "3.12"]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         django: ["3.2", "4.2", "5.1"]
         pydantic: ["2.0", "2.10"]
 
