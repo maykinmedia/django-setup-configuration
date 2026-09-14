@@ -40,6 +40,7 @@ class SetupConfigUsageDirective(Directive):
     }
 
     def run(self):
+
         show_command_usage = self.options.get("show_command_usage", True)
         show_steps = self.options.get("show_steps", True)
         show_steps_toc = self.options.get("show_steps_toc", True)
@@ -98,8 +99,11 @@ class SetupConfigUsageDirective(Directive):
                 else:
                     # Explicitly display the docstring if there's no autodoc to serve
                     # as the step description.
-                    for line in step.description.splitlines():
+                    for line in step.description.strip().splitlines():
                         rst.append(line, "<dynamic>")
+
+                    # Ensure whitespace is added to make sure directive renders properly
+                    rst.append("\n", "<dynamic>")
 
                 rst.append(f".. setup-config-example:: {step.module_path}", "<dynamic>")
 

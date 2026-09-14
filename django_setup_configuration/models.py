@@ -28,7 +28,24 @@ class DjangoRefsMetaclass(BaseModel.__class__):  # type: ignore
         *args,
         **kwargs: Any,
     ):
-        annotations = namespace.setdefault("__annotations__", {})
+        # PEP 649 (3.14): the compiler no longer eagerly populates
+        # namespace["__annotations__"]. It instead puts a callable under
+        # namespace["__annotate_func__"]. We must call it ourselves and
+        # write the result back as a plain dict, because Pydantic's own
+        # metaclass still reads namespace["__annotations__"] eagerly.
+        annotate_fn = namespace.get("__annotate_func__")
+        if annotate_fn is not None:
+            import annotationlib
+
+            annotations = dict(
+                annotationlib.call_annotate_function(
+                    annotate_fn, annotationlib.Format.FORWARDREF
+                )
+            )
+        else:
+            # Python < 3.14, or a class body with no annotations at all
+            annotations = dict(namespace.get("__annotations__", {}))
+        namespace["__annotations__"] = annotations
 
         if meta := namespace.get("Meta", None):
             extra_kwargs = getattr(meta, "extra_kwargs", {})

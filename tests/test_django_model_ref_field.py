@@ -346,7 +346,7 @@ def test_str_with_choices_and_blank_allows_empty_string_in_annotation():
 
     assert field.title == "str with choices and blank"
     assert field.description is None
-    assert field.annotation is Literal["foo", "bar"] | Literal[""]
+    assert field.annotation == Literal["foo", "bar"] | Literal[""]
     assert field.default == ""
     assert field.is_required() is False
 
@@ -361,7 +361,7 @@ def test_int_with_choices_and_blank_adds_default_in_annotation():
 
     assert field.title == "int with choices and blank"
     assert field.description is None
-    assert field.annotation is Literal[1, 8] | None
+    assert field.annotation == Literal[1, 8] | None
     assert field.default is None
     assert field.is_required() is False
 
@@ -376,7 +376,7 @@ def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annot
 
     assert field.title == "int with choices and blank and non choice default"
     assert field.description is None
-    assert field.annotation is Literal[1, 8] | Literal[42]
+    assert field.annotation == Literal[1, 8] | Literal[42]
     assert field.default == 42
     assert field.is_required() is False
 
