@@ -36,7 +36,7 @@ class ValidateConfigExampleDirective(Directive):
 
             # Ensure the class has the config_model attribute
             if not issubclass(step_class, BaseConfigurationStep):
-                raise ValueError(
+                raise TypeError(
                     f"The step class '{step_class}' does not "
                     "inherit from BaseConfigurationStep."
                 )
@@ -45,11 +45,11 @@ class ValidateConfigExampleDirective(Directive):
 
             # Ensure the config_model is a Pydantic model
             if not issubclass(config_model, BaseModel):
-                raise ValueError(
+                raise TypeError(
                     f"The config_model '{config_model}' is not a valid Pydantic model."
                 )
 
-        except (ValueError, AttributeError, ImportError) as e:
+        except (TypeError, ValueError, AttributeError, ImportError) as e:
             raise ValueError(
                 f"Step class '{step_class_path}' could not be found or is invalid."
             ) from e

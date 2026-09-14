@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from importlib.metadata import version
 from pathlib import Path
+from typing import ClassVar
 
 from django.template import Template
 from django.template.context import Context
@@ -32,7 +34,7 @@ class StepInfo:
 class SetupConfigUsageDirective(Directive):
     has_content = True
 
-    option_spec = {
+    option_spec: ClassVar[dict[str, Callable]] = {  # pyright: ignore[reportIncompatibleVariableOverride]
         "show_command_usage": _parse_bool,
         "show_steps": _parse_bool,
         "show_steps_toc": _parse_bool,

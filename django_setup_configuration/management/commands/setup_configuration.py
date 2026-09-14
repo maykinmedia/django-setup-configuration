@@ -46,7 +46,7 @@ class Command(BaseCommand):
 
         try:
             runner = SetupConfigurationRunner(yaml_source=options["yaml_file"])
-        except Exception as exc:
+        except Exception as exc:  # ruff: ignore[BLE001]
             raise CommandError(str(exc)) from None
 
         if not runner.configured_steps:

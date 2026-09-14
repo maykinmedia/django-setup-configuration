@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from django_setup_configuration.exceptions import ConfigurationException
 from django_setup_configuration.models import ConfigurationModel
@@ -7,7 +7,7 @@ from django_setup_configuration.models import ConfigurationModel
 TConfigModel = TypeVar("TConfigModel", bound=ConfigurationModel)
 
 
-class BaseConfigurationStep(ABC, Generic[TConfigModel]):
+class BaseConfigurationStep[TConfigModel: ConfigurationModel](ABC):
     """
     A single configuration step to configure some part of the Django application.
 

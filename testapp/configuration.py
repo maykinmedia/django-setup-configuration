@@ -1,11 +1,15 @@
+from collections.abc import Sequence
+from typing import ClassVar
+
 from django.contrib.auth.models import User
+from django.db.models import Model
 
 from django_setup_configuration import BaseConfigurationStep, ConfigurationModel
 
 
 class UserConfigurationModel(ConfigurationModel):
     class Meta:
-        django_model_refs = {
+        django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
             User: [
                 "username",
                 "password",

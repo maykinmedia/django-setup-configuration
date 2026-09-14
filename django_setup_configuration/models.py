@@ -61,18 +61,17 @@ class DjangoRefsMetaclass(BaseModel.__class__):  # type: ignore
                         )
 
         for key, value in namespace.items():
-            if isinstance(value, DjangoModelRefInfo):
-                if key not in annotations:
-                    # We were unable to map this type, and the user did not override
-                    # the annotation. Raise an exception and prompt to user to add one.
-                    if value.python_type is UNMAPPED_DJANGO_FIELD:
-                        raise ValueError(
-                            f"We could not infer a type for attribute `{key}` with "
-                            f"Django field type {type(value.django_field)}. Please "
-                            "add an explicit type annotation."
-                        )
+            if isinstance(value, DjangoModelRefInfo) and key not in annotations:
+                # We were unable to map this type, and the user did not override
+                # the annotation. Raise an exception and prompt to user to add one.
+                if value.python_type is UNMAPPED_DJANGO_FIELD:
+                    raise ValueError(
+                        f"We could not infer a type for attribute `{key}` with "
+                        f"Django field type {type(value.django_field)}. Please "
+                        "add an explicit type annotation."
+                    )
 
-                    annotations[key] = value.python_type
+                annotations[key] = value.python_type
 
         return super().__new__(cls, name, bases, namespace, *args, **kwargs)
 
