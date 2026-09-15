@@ -96,7 +96,7 @@ class SetupConfigurationRunner:
                 step_classes.append(
                     import_string(step) if isinstance(step, str) else step
                 )
-            except ImportError as exc:  # noqa: PERF203
+            except ImportError as exc:
                 raise ConfigurationException(
                     f"Your configured steps contain `{step}`, which cannot be imported"
                 ) from exc
@@ -171,7 +171,7 @@ class SetupConfigurationRunner:
         try:
             with transaction.atomic():
                 step.execute(config_model)
-        except BaseException as exc:
+        except BaseException as exc:  # ruff: ignore[BLE001]
             step_exc = exc
         finally:
             has_run = True
@@ -212,7 +212,7 @@ class SetupConfigurationRunner:
         for step in self.enabled_steps:
             try:
                 self._validate_requirements_for_step(step)
-            except PrerequisiteFailed as exc:  # noqa: PERF203
+            except PrerequisiteFailed as exc:
                 exceptions.append(exc)
 
         if exceptions:

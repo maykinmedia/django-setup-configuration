@@ -1,8 +1,11 @@
 import difflib
 import textwrap
-from typing import Literal
+from collections.abc import Sequence
+from typing import ClassVar, Literal
 from unittest import mock
 from unittest.mock import patch
+
+from django.db.models import Model
 
 import approvaltests
 import pytest
@@ -75,7 +78,7 @@ class ConfigModel(ConfigurationModel):
     )
     union_of_primitives: str | int = Field()
     sequence_of_primitives: list[int] = Field()
-    literal: Literal["foo", "bar", "bar"] = Field()
+    literal: Literal["foo", "bar"] = Field()
     literal_block_scalar: str = Field(default='{\n  "foo":"bar",\n  "bar":"baz"\n}')
     uuid_field: UUID4 = Field()
 
@@ -85,7 +88,7 @@ class ConfigModel(ConfigurationModel):
     )
 
     class Meta:
-        django_model_refs = {
+        django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
             DjangoModel: (
                 "str_with_choices_and_default",
                 "boolean_field",
@@ -98,7 +101,7 @@ class ConfigModel(ConfigurationModel):
                 "uuid_field_with_default",
             )
         }
-        extra_kwargs = {
+        extra_kwargs: ClassVar[dict[str, dict[str, str | Sequence[str]]]] = {
             "nullable_str": {"examples": ["example string via extra kwargs"]}
         }
 

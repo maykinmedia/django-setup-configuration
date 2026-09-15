@@ -1,4 +1,8 @@
+from collections.abc import Sequence
+from typing import ClassVar
+
 from django.contrib.auth import get_user_model
+from django.db.models import Model
 
 from django_setup_configuration.models import ConfigurationModel
 
@@ -14,7 +18,7 @@ class UserConfigurationItem(ConfigurationModel):
     """
 
     class Meta:
-        django_model_refs = {
+        django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
             User: (
                 "email",
                 "username",
