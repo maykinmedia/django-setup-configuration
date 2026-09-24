@@ -2,6 +2,29 @@
 Changelog
 =========
 
+0.13.0 (2026-09-24)
+===================
+
+💥 **Breaking changes**
+
+* Drop support for Python 3.10 and 3.11
+* Drop support for Django 3.2, 4.2 and 5.1
+
+**New features**
+
+* Add support for Python 3.13 and 3.14
+* Add explicit support for Django 5.2
+* Add explicit support for Pydantic 2.13
+
+**Maintenance**
+
+* Add zizmor linting to Github Actions pipeline
+* Remove outdated docs build script and modernize setup
+
+**Documentation**
+
+* Fix incorrect usage of YAML example directive for ``UserConfigurationStep`` and ``SitesConfigurationStep``
+
 0.12.0 (2026-03-09)
 ===================
 
