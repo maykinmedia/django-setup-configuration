@@ -149,7 +149,7 @@ class DjangoModelRefInfo(FieldInfo):
         # can be non-trivial (especially if a default factory is involved), and because
         # we care about types that can be expressed as simple YAML/JSON scalars, it also
         # would not make much sense to add complex types to the annotation.
-        validate_defaults = False if self.django_field.choices else True
+        validate_defaults = not self.django_field.choices
         field_info_creation_kwargs["validate_default"] = field_info_creation_kwargs[
             "validate_return"
         ] = validate_defaults
@@ -157,7 +157,7 @@ class DjangoModelRefInfo(FieldInfo):
         if examples := kwargs.get("examples"):
             field_info_creation_kwargs["examples"] = examples
 
-        return super().__init__(**field_info_creation_kwargs)
+        super().__init__(**field_info_creation_kwargs)
 
     @staticmethod
     def _get_python_type(

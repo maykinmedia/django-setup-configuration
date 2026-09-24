@@ -1,7 +1,9 @@
-from typing import Literal
+from collections.abc import Sequence
+from typing import ClassVar, Literal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_slug
+from django.db.models import Model
 
 import pytest
 from pydantic import ValidationError
@@ -25,7 +27,7 @@ def test_meta_spec_is_equivalent_to_inline_fields():
 
     class ConfigInline(ConfigurationModel):
         class Meta:
-            django_model_refs = {
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
                 DjangoModel: [
                     "required_int",
                     "int_with_default",
@@ -40,7 +42,7 @@ def test_meta_spec_is_equivalent_to_inline_fields():
         strict=True,
     ):
         assert field_meta.field_name == field_inline.field_name
-        assert field_meta.annotation == field_inline.annotation  # noqa: E721
+        assert field_meta.annotation == field_inline.annotation
         assert field_meta.default == field_inline.default
         assert field_meta.description == field_inline.description
         assert field_meta.is_required() == field_inline.is_required()
@@ -92,7 +94,6 @@ def test_slug_validation_fails_on_both_pydantic_and_django(invalid_values):
         "foo_bar_baz",
         "foo-bar-baz",
         "fO0-B4r-Baz",
-        "foo-bar-baz",
         "foobarbaz",
         "FooBarBaz",
     ),
@@ -101,14 +102,16 @@ def test_slug_validation_succeeds_on_both_pydantic_and_django(valid_values):
     class Config(ConfigurationModel):
         slug = DjangoModelRef(DjangoModel, "slug")
 
-    Config.model_validate(dict(slug=valid_values))
+    Config.model_validate({"slug": valid_values})
     validate_slug(valid_values)  # does not raise
 
 
 def test_no_default_makes_field_required():
     class Config(ConfigurationModel):
         class Meta:
-            django_model_refs = {DjangoModel: ["required_int"]}
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
+                DjangoModel: ["required_int"]
+            }
 
     field = Config.model_fields["required_int"]
 
@@ -120,7 +123,9 @@ def test_no_default_makes_field_required():
 def test_default_is_taken_from_field():
     class Config(ConfigurationModel):
         class Meta:
-            django_model_refs = {DjangoModel: ["int_with_default"]}
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
+                DjangoModel: ["int_with_default"]
+            }
 
     field = Config.model_fields["int_with_default"]
 
@@ -169,7 +174,7 @@ def test_blank_fields_have_default_added_as_literal():
     ]
 
     assert blank_bool_with_default.annotation is bool
-    assert nullable_blank_bool_with_default.annotation == bool | None  # noqa: E721
+    assert nullable_blank_bool_with_default.annotation == bool | None
 
     assert (
         blank_bool_with_default.is_required()
@@ -181,13 +186,15 @@ def test_blank_fields_have_default_added_as_literal():
 def test_null_is_true_sets_default_to_none():
     class Config(ConfigurationModel):
         class Meta:
-            django_model_refs = {DjangoModel: ["nullable_int"]}
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
+                DjangoModel: ["nullable_int"]
+            }
 
     field = Config.model_fields["nullable_int"]
 
     assert field.title == "nullable int"
     assert field.description is None
-    assert field.annotation == int | None  # noqa: E721
+    assert field.annotation == int | None
     assert field.default is None
     assert field.is_required() is False
 
@@ -195,7 +202,9 @@ def test_null_is_true_sets_default_to_none():
 def test_null_prefers_explicit_default():
     class Config(ConfigurationModel):
         class Meta:
-            django_model_refs = {DjangoModel: ["nullable_int_with_default"]}
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
+                DjangoModel: ["nullable_int_with_default"]
+            }
 
     field = Config.model_fields["nullable_int_with_default"]
 
@@ -209,13 +218,15 @@ def test_null_prefers_explicit_default():
 def test_null_is_true_sets_default_to_none_for_str_fields():
     class Config(ConfigurationModel):
         class Meta:
-            django_model_refs = {DjangoModel: ["nullable_and_blank_str"]}
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
+                DjangoModel: ["nullable_and_blank_str"]
+            }
 
     field = Config.model_fields["nullable_and_blank_str"]
 
     assert field.title == "nullable and blank str"
     assert field.description is None
-    assert field.annotation == str | None  # noqa: E721
+    assert field.annotation == str | None
     assert field.default is None
     assert field.is_required() is False
 
@@ -223,7 +234,9 @@ def test_null_is_true_sets_default_to_none_for_str_fields():
 def test_blank_is_true_null_is_false_sets_default_to_empty_str_for_str_fields():
     class Config(ConfigurationModel):
         class Meta:
-            django_model_refs = {DjangoModel: ["blank_str"]}
+            django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
+                DjangoModel: ["blank_str"]
+            }
 
     field = Config.model_fields["blank_str"]
 
@@ -346,7 +359,7 @@ def test_str_with_choices_and_blank_allows_empty_string_in_annotation():
 
     assert field.title == "str with choices and blank"
     assert field.description is None
-    assert field.annotation is Literal["foo", "bar"] | Literal[""]
+    assert field.annotation == Literal["foo", "bar"] | Literal[""]  # ruff: ignore[PYI030]
     assert field.default == ""
     assert field.is_required() is False
 
@@ -361,7 +374,7 @@ def test_int_with_choices_and_blank_adds_default_in_annotation():
 
     assert field.title == "int with choices and blank"
     assert field.description is None
-    assert field.annotation is Literal[1, 8] | None
+    assert field.annotation == Literal[1, 8] | None
     assert field.default is None
     assert field.is_required() is False
 
@@ -376,7 +389,7 @@ def test_int_with_choices_and_blank_and_non_choice_default_adds_default_in_annot
 
     assert field.title == "int with choices and blank and non choice default"
     assert field.description is None
-    assert field.annotation is Literal[1, 8] | Literal[42]
+    assert field.annotation == Literal[1, 8] | Literal[42]  # ruff: ignore[PYI030]
     assert field.default == 42
     assert field.is_required() is False
 

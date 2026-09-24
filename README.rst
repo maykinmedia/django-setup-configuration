@@ -6,7 +6,7 @@ Welcome to Django setup configuration's documentation!
 :Version: 0.12.0
 :Source: https://github.com/maykinmedia/django-setup-configuration
 :Keywords: Configuration
-:PythonVersion: 3.10
+:PythonVersion: 3.12
 
 |build-status| |code-quality| |ruff| |coverage| |docs|
 
@@ -36,8 +36,8 @@ Installation
 Requirements
 ------------
 
-* Python 3.10 or above
-* Django 3.2 or above
+* Python 3.12 or above
+* Django 5.2 or above
 * Pydantic 2 or above
 * Pydantic-settings 2.2 or above
 

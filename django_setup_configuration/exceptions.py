@@ -27,7 +27,7 @@ class PrerequisiteFailed(ConfigurationException):
         self.validation_error = validation_error
         super().__init__(
             f"Failed to load config model for {step}. Further "
-            f"details:\n{str(validation_error)}"
+            f"details:\n{validation_error!s}"
         )
 
 
@@ -35,8 +35,6 @@ class ConfigurationRunFailed(ConfigurationException):
     """
     Raises an error when the configuration process was faulty
     """
-
-    pass
 
 
 class ImproperlyConfigured(ConfigurationException):

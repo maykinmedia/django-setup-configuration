@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from importlib.metadata import version
 from pathlib import Path
+from typing import ClassVar
 
 from django.template import Template
 from django.template.context import Context
@@ -32,7 +34,7 @@ class StepInfo:
 class SetupConfigUsageDirective(Directive):
     has_content = True
 
-    option_spec = {
+    option_spec: ClassVar[dict[str, Callable]] = {  # pyright: ignore[reportIncompatibleVariableOverride]
         "show_command_usage": _parse_bool,
         "show_steps": _parse_bool,
         "show_steps_toc": _parse_bool,
@@ -40,6 +42,7 @@ class SetupConfigUsageDirective(Directive):
     }
 
     def run(self):
+
         show_command_usage = self.options.get("show_command_usage", True)
         show_steps = self.options.get("show_steps", True)
         show_steps_toc = self.options.get("show_steps_toc", True)
@@ -98,8 +101,11 @@ class SetupConfigUsageDirective(Directive):
                 else:
                     # Explicitly display the docstring if there's no autodoc to serve
                     # as the step description.
-                    for line in step.description.splitlines():
+                    for line in step.description.strip().splitlines():
                         rst.append(line, "<dynamic>")
+
+                    # Ensure whitespace is added to make sure directive renders properly
+                    rst.append("\n", "<dynamic>")
 
                 rst.append(f".. setup-config-example:: {step.module_path}", "<dynamic>")
 

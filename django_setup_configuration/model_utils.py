@@ -2,7 +2,7 @@ import collections
 import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any
 
 import pydantic
 from pydantic import create_model
@@ -25,7 +25,7 @@ ConfigSourceModels = collections.namedtuple(
 )
 
 
-JSONValue: TypeAlias = (
+type JSONValue = (
     None | bool | int | float | str | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
 )
 
